@@ -1,0 +1,174 @@
+:root {
+  --bg1: #25102e; --bg2: #7a2f5c; --glow: #ff9ec4; --ink: #fff5f8;
+  --script: 'Great Vibes', 'Dancing Script', cursive;
+  --hand: 'Dancing Script', cursive;
+  --ui: 'Quicksand', system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--ui); color: var(--ink); overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 0%, var(--bg2), var(--bg1) 70%) fixed;
+}
+body::before, body::after {
+  content: ''; position: fixed; width: 60vmax; height: 60vmax; border-radius: 50%;
+  background: var(--glow); opacity: .14; filter: blur(90px); pointer-events: none; z-index: 0;
+  animation: drift 18s ease-in-out infinite alternate;
+}
+body::before { top: -25vmax; left: -20vmax; }
+body::after { bottom: -30vmax; right: -20vmax; animation-delay: -9s; }
+@keyframes drift { to { transform: translate(8vmax, 6vmax) scale(1.15); } }
+
+#app { position: fixed; inset: 0; overflow-y: auto; overflow-x: hidden; z-index: 2; }
+#rain { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
+#wipe { position: fixed; inset: 0; z-index: 50; visibility: hidden; pointer-events: none; }
+
+/* falling petals */
+.rp {
+  position: absolute; top: -30px; border-radius: 150% 0 150% 0; opacity: 0;
+  animation: fall linear infinite;
+}
+@keyframes fall {
+  0% { transform: translate3d(0, -5vh, 0) rotate(0); opacity: 0; }
+  8% { opacity: .85; }
+  50% { transform: translate3d(var(--sx), 50vh, 0) rotate(200deg); }
+  100% { transform: translate3d(calc(var(--sx) * -.6), 108vh, 0) rotate(420deg); opacity: 0; }
+}
+
+/* buttons */
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+.ghost {
+  padding: 10px 18px; border-radius: 999px; background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.2); backdrop-filter: blur(8px);
+  transition: transform .25s, background .25s, box-shadow .25s;
+}
+.ghost:hover { background: rgba(255,255,255,.2); transform: translateY(-2px); box-shadow: 0 8px 24px -8px var(--glow); }
+.round { width: 42px; height: 42px; padding: 0; display: inline-grid; place-items: center; font-size: 1.2rem; }
+
+/* ============ HOME ============ */
+.home { min-height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 28px 0 24px; text-align: center; }
+.home header { padding: 0 20px; animation: fadeup 1.2s .1s both; }
+.eyebrow { letter-spacing: .4em; text-transform: uppercase; font-size: .75rem; opacity: .75; }
+.title {
+  font-family: var(--script); font-weight: 400; line-height: 1.1;
+  font-size: clamp(3.4rem, 12vw, 7rem); margin: 6px 0;
+  background: linear-gradient(100deg, #fff 20%, var(--glow) 45%, #fff 70%); background-size: 250% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: shimmer 6s linear infinite; filter: drop-shadow(0 6px 24px rgba(255,120,170,.35));
+}
+@keyframes shimmer { to { background-position: -250% 0; } }
+.sub { max-width: 30em; margin: 0 auto; opacity: .85; line-height: 1.6; }
+
+.carousel-wrap { position: relative; margin-top: 10px; }
+.carousel {
+  --cw: min(76vw, 290px);
+  display: flex; gap: 26px; overflow-x: auto; padding: 34px calc(50vw - var(--cw) / 2) 30px;
+  scroll-snap-type: x proximity; scrollbar-width: none; cursor: grab;
+}
+.carousel::-webkit-scrollbar { display: none; }
+.carousel.dragging { scroll-snap-type: none; cursor: grabbing; }
+.card {
+  flex: 0 0 var(--cw); height: min(58vh, 400px); min-height: 330px; scroll-snap-align: center; position: relative;
+  border-radius: 30px; padding: 22px 18px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  background: linear-gradient(160deg, rgba(255,255,255,.16), rgba(255,255,255,.04));
+  border: 1px solid rgba(255,255,255,.22); backdrop-filter: blur(10px); overflow: hidden;
+  transform: scale(.86); opacity: .55; filter: saturate(.6);
+  transition: transform .55s cubic-bezier(.2,.9,.3,1), opacity .5s, filter .5s, box-shadow .5s;
+  animation: fadeup .9s both; animation-delay: calc(.4s + var(--i) * .12s);
+  user-select: none; -webkit-user-drag: none;
+}
+.card::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 38%, var(--c), transparent 62%); opacity: .35;
+}
+.card.active { transform: scale(1); opacity: 1; filter: none; box-shadow: 0 30px 60px -25px var(--c), 0 0 0 1px rgba(255,255,255,.3) inset; }
+.card.active:hover { transform: scale(1.03) translateY(-4px); }
+.letter {
+  position: absolute; top: 4px; left: 20px; font-family: var(--script); font-size: 6.5rem; line-height: 1; opacity: .35;
+}
+.card svg { position: absolute; top: 8%; left: 8%; width: 84%; height: 58%; overflow: visible; }
+.card .flw { animation: bob 5s ease-in-out infinite; }
+.cname { position: relative; font-family: var(--script); font-size: 2.3rem; line-height: 1.1; }
+.csub { position: relative; font-size: .8rem; letter-spacing: .22em; text-transform: uppercase; opacity: .8; margin-top: 4px; }
+.copen { position: relative; margin-top: 12px; font-size: .85rem; opacity: 0; transform: translateY(6px); transition: .4s; }
+.card.active .copen { opacity: .9; transform: none; animation: nudge 1.6s ease-in-out infinite; }
+@keyframes nudge { 50% { transform: translateX(5px); } }
+
+.arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; }
+.arrow.l { left: 12px; } .arrow.r { right: 12px; }
+@media (max-width: 700px) { .arrow { display: none; } }
+
+.chips { display: flex; justify-content: center; gap: 12px; margin-top: 4px; animation: fadeup 1s 1.1s both; }
+.chip {
+  width: 46px; height: 46px; border-radius: 50%; font-family: var(--script); font-size: 1.7rem; line-height: 1;
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25);
+  transition: .35s cubic-bezier(.2,.9,.3,1);
+}
+.chip:hover { transform: translateY(-4px) scale(1.08); }
+.chip.active { background: #fff; color: #5a1f45; box-shadow: 0 0 26px var(--glow); transform: scale(1.12); }
+.hint { margin-top: 16px; font-size: .8rem; letter-spacing: .2em; opacity: .55; animation: fadeup 1s 1.3s both; }
+
+/* ============ BOUQUET ============ */
+.bq { min-height: 100%; display: flex; flex-direction: column; padding: 16px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; position: relative; z-index: 5; }
+.tag { font-family: var(--script); font-size: 1.7rem; opacity: .9; }
+.pn { display: flex; gap: 8px; }
+.stage { flex: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: clamp(10px, 4vw, 56px); padding: 6px; }
+.bouquet-wrap { position: relative; width: min(90vw, 520px, calc((100dvh - 110px) * .714)); aspect-ratio: 400 / 560; cursor: pointer; }
+.halo {
+  position: absolute; inset: 4% 0 24%; border-radius: 50%; background: radial-gradient(circle, var(--glow), transparent 65%);
+  filter: blur(28px); opacity: 0; animation: halo 3s 1s ease-out forwards;
+}
+@keyframes halo { to { opacity: .5; } }
+.bob { position: relative; width: 100%; height: 100%; animation: bob 6s ease-in-out infinite; }
+.bq-svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 24px 30px rgba(0,0,0,.35)); }
+@keyframes bob { 50% { transform: translateY(-8px) rotate(.6deg); } }
+
+.msg {
+  width: min(92vw, 460px); padding: 28px 26px; border-radius: 28px;
+  background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.2); backdrop-filter: blur(14px);
+  box-shadow: 0 30px 60px -30px rgba(0,0,0,.5); animation: fadeup 1s .4s both;
+}
+.kicker { font-size: .72rem; letter-spacing: .3em; text-transform: uppercase; opacity: .7; }
+.msg h2 { font-family: var(--script); font-weight: 400; font-size: clamp(2.2rem, 6vw, 3rem); margin: 4px 0 6px; }
+.text p { font-family: var(--hand); font-size: clamp(1.25rem, 2.6vw, 1.55rem); line-height: 1.45; margin: .55em 0; }
+.w { display: inline-block; white-space: nowrap; }
+.c { opacity: 0; filter: blur(4px); transition: opacity .5s, filter .5s; }
+.c.on { opacity: 1; filter: none; }
+.sig { font-family: var(--script); font-size: 1.9rem; margin-top: 10px; text-align: right; opacity: 0; transform: translateY(8px); transition: 1s; }
+.sig.on { opacity: 1; transform: none; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+/* burst particles */
+.pt { position: fixed; z-index: 40; pointer-events: none; }
+
+/* ============ FLOWER ANIMATIONS ============ */
+.stem { stroke-dasharray: 1; stroke-dashoffset: 1; animation: grow 1.5s cubic-bezier(.3,.7,.2,1) forwards; animation-delay: var(--sd); }
+@keyframes grow { to { stroke-dashoffset: 0; } }
+.leaf { transform: scale(0); animation: pop 1.1s cubic-bezier(.3,1.3,.5,1) forwards; animation-delay: var(--ld); }
+.bl, .bow { transform: scale(0); opacity: 0; animation: pop .9s cubic-bezier(.3,1.6,.5,1) forwards; animation-delay: var(--bd); }
+@keyframes pop { to { transform: scale(1); opacity: 1; } }
+.paper { opacity: 0; animation: paperin .9s cubic-bezier(.2,.9,.3,1) forwards; animation-delay: var(--pd); }
+@keyframes paperin { from { transform: translateY(50px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.petal { transform: scale(0); opacity: 0; animation: unfurl 1.2s cubic-bezier(.2,1.15,.3,1) forwards; animation-delay: calc(var(--base) + var(--pd)); }
+@keyframes unfurl { 0% { transform: scale(0); opacity: 0; } 25% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+.core { opacity: 0; animation: fadein .9s forwards; animation-delay: calc(var(--base) + .55s); }
+@keyframes fadein { to { opacity: 1; } }
+.spin { animation: spinin 2s cubic-bezier(.2,.9,.3,1) both; animation-delay: var(--base); }
+@keyframes spinin { from { transform: rotate(-45deg) scale(.4); } to { transform: none; } }
+.sway { animation: sway 6s ease-in-out infinite alternate; animation-delay: calc(var(--base) + 1.8s); }
+@keyframes sway { from { transform: rotate(-1.8deg); } to { transform: rotate(1.8deg); } }
+
+.tw { transform: scale(0); opacity: 0; animation: twinkle var(--td) ease-in-out infinite; animation-delay: var(--tl); }
+@keyframes twinkle { 0%, 100% { transform: scale(0) rotate(0); opacity: 0; } 50% { transform: scale(1) rotate(45deg); opacity: .95; } }
+
+@keyframes fadeup { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+/* .card overrides opacity/transform, so give it its own entrance */
+.card { animation-name: cardin; }
+@keyframes cardin { from { translate: 0 30px; opacity: 0; } to { translate: 0 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .rp, body::before, body::after { display: none; }
+}
+@media (max-width: 800px) { .stage { flex-direction: column; } }
