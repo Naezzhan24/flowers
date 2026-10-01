@@ -7,3 +7,5 @@
   e.mp3  -> Bouquet E (Tulips)
 
 Pwede rin .m4a, .ogg, o .wav. Automatic mag-loop at mag-fade in/out.
+
+  museum.mp3 -> Museum page (unang page). Tumutugtog lang dito, humihinto pag umalis ka.

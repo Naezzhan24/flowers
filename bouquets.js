@@ -4,6 +4,8 @@
 const CONFIG = {
   to: 'Anne',
   from: '— Jiroom ❤',
+  // IBIGAY MO ANG PETSA: lalabas sa plaque sa pader ng museum at sa huling page ng libro. Iwanang '' kung wala pa.
+  since: '',
 }
 
 const GREEN = { color: '#3f7d4e', dark: '#2e6440' }
@@ -196,12 +198,15 @@ const BOUQUETS = [
       letter: {
         title: 'Dear Anne,',
         paragraphs: [
-          'Dito mo ilalagay ang letter mo para kay Anne.',
-          'Isulat mo ang gusto mong sabihin, kahit gaano kahaba. Mag-i-scroll ito sa loob ng page kung humaba.',
-          'Isang linya sa listahan na ito = isang paragraph.',
+          'pano ko nga ba sisimulan ito? andami na naming pinag awayan, pinagtalunan to the point na nagtataasan na tayo ng boses na hindi naman dapat natin ginagawa eh.',
+          'First of all I hope na kahit na naging ganto yung sitwasyon natin eh napapasaya padin kita alam kong hindi pera ang labanan or kung ano man wala akong gusto ipamukha ha. Gusto ko lang na maging masaya ka kahit na magkalayo na tayo, I dont want na masakal ka nanaman sakin hehe pero mahal padin kita anne its not about comfort, its not about your body, its not about kase masaya ako, mahal kita kase ikaw yung babaeng gusto kong maglakad sa alter papunta sakin at ikaw yung babaeng gusto ko na kasabay magsabi ng sari sarili nilang vows sa harap ng panginoon at sa harap ng sari sarili nating pamilya.',
+          'Focus ako sa sarili ko para maging better ako, nagkaroon na ko ng pangarap para sa sarili ko hindi nalang para sating dalawa. Madami kang naturo sakin lahat ng nangyare satin eh nagbunga namulat ako sa lahat lahat. Kaya eto ngayon ginagawa ko yung best ko hindi na dahil para sating dalawa kundi para sa future at para sa sarili ko nadin pero sa pag angat ko sa buhay habang nag iimprove ako gusto ko andyan ka at kasama ka.',
+          'Sorry pala kase alam ko hindi ka na masaya ha. Yun lang Thank you ulit for everything na ginawa mo para sakin.',
         ],
-        sign: '— Jiroom ❤',
+        sign: 'I LOVE YOU LOVEE from Tally, From ni(GGA) :)',
       },
+      // huling page ng libro (pagkatapos ng letter). note = optional na maikling sulat sa gitna.
+      end: { title: 'The End ❤', note: '' },
     },
     flowers: [{ p: 'peony', x: 200, y: 168, s: 108, finale: true }],
     message: [
@@ -233,3 +238,20 @@ BOUQUETS.forEach((b) =>
       f.photos = [{ src: `photos/${b.id}${i + 1}`, caption: (b.captions && b.captions[i]) || '' }]
   }),
 )
+
+/* ============================================================
+   MUSEUM (unang page): mga naka-frame na pictures sa pader
+   x, y = pwesto sa pader (% ng lapad/taas ng kwarto), w = lapad ng frame (% ng lapad ng kwarto)
+   ratio = hugis ng picture ('3 / 4' portrait, '4 / 3' landscape). caption = lalabas sa popup; plaque = (optional) maliit na nakasulat sa ilalim ng frame.
+   Ang mga pictures dito ay yung kayong dalawa (b1, b2, b3). Dagdagan pa kapag may bago.
+   ============================================================ */
+const MUSEUM = {
+  eyebrow: 'for ' + CONFIG.to,
+  title: 'Hello, Flower',
+  sub: 'A little gallery of us. Take your time, then find the flowers on the table.',
+  frames: [
+    { src: 'photos/b2', x: 22, y: 16, w: 0.12, ratio: '3 / 4', tilt: -1, plaque: 'May 14', caption: 'Two: “I still love you.”' },
+    { src: 'photos/b3', x: 40, y: 27, w: 0.105, ratio: '3 / 4', tilt: 1, plaque: 'May 8', caption: 'Three: “I’ll love you tomorrow, and every tomorrow after that.” ❤' },
+    { src: 'photos/b1', x: 57, y: 15, w: 0.115, ratio: '3 / 4', tilt: 0, plaque: 'July 5', caption: 'One: “I love you.”' },
+  ],
+}
