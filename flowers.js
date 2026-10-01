@@ -180,7 +180,9 @@
       const rot = n2(kind === 'tulip' ? tang : tang * .25);
       const base = 1.3 + i * step;
       last = base;
-      flowers += `<g transform="translate(${f.x} ${f.y})"><g transform="rotate(${rot})">${bloom(kind, f.s, PAL[f.p], b.seed + i * 7 + 3, base)}</g></g>`;
+      const hit = n2(f.s * (kind === 'tulip' ? 1.1 : .95));
+      const hy = kind === 'tulip' ? n2(-f.s * .6) : 0;
+      flowers += `<g class="fl" data-f="${i}" role="button" tabindex="0" aria-label="Open pictures of flower ${i + 1}" transform="translate(${f.x} ${f.y})"><circle cx="0" cy="${hy}" r="${hit}" fill="transparent"/><g transform="rotate(${rot})">${bloom(kind, f.s, PAL[f.p], b.seed + i * 7 + 3, base)}</g></g>`;
     });
 
     // sparkles

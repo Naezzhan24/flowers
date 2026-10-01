@@ -103,6 +103,337 @@ function burst(x, y, colors) {
   }
 }
 
+/* ---------------- flower pictures (lightbox) ---------------- */
+const PHOTO_EXT = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'JPG', 'PNG'];
+const lb = {
+  el: document.getElementById('lightbox'),
+  card: document.getElementById('lbCard'),
+  img: document.getElementById('lbImg'),
+  miss: document.getElementById('lbMiss'),
+  cap: document.getElementById('lbCap'),
+  nav: document.getElementById('lbNav'),
+  count: document.getElementById('lbCount'),
+  slot: document.getElementById('lbFlower'),
+  list: [], i: 0, token: 0, opener: null, closing: false,
+};
+
+function lbShow(animate = true) {
+  const p = lb.list[lb.i], my = ++lb.token;
+  const hasExt = /\.[a-z0-9]{2,4}$/i.test(p.src);
+  const tries = hasExt ? [p.src] : PHOTO_EXT.map((e) => `${p.src}.${e}`);
+  let n = 0;
+  lb.img.style.display = 'none';
+  lb.miss.style.display = 'none';
+  lb.card.classList.remove('flip');
+  if (animate) {
+    void lb.card.offsetWidth;
+    lb.card.classList.add('flip');
+  }
+  const next = () => {
+    if (my !== lb.token) return;
+    if (n >= tries.length) {
+      lb.miss.textContent = `Ilagay ang picture sa  ${hasExt ? p.src : p.src + '.jpg'}`;
+      lb.miss.style.display = 'block';
+      return;
+    }
+    lb.img.src = tries[n++];
+  };
+  lb.img.onload = () => { if (my === lb.token) lb.img.style.display = 'block'; };
+  lb.img.onerror = next;
+  next();
+  lb.cap.textContent = p.caption || '';
+  lb.cap.style.display = p.caption ? 'block' : 'none';
+  lb.count.textContent = `${lb.i + 1} / ${lb.list.length}`;
+  lb.nav.style.display = lb.list.length > 1 ? 'flex' : 'none';
+}
+
+/* the tapped flower flies out of the bouquet and sticks to the polaroid corner */
+function flyFlower(svgMarkup, from, to, fromDeg, toDeg, ms, done) {
+  const el = document.createElement('div');
+  el.className = 'fly';
+  el.style.cssText = `left:${from.left}px;top:${from.top}px;width:${from.width}px;height:${from.height}px`;
+  el.innerHTML = svgMarkup;
+  document.body.appendChild(el);
+  const dx = to.x - (from.left + from.width / 2), dy = to.y - (from.top + from.height / 2);
+  const s = to.size / Math.max(from.width, from.height);
+  el.animate([
+    { transform: `translate(0,0) scale(1) rotate(${fromDeg}deg)` },
+    { transform: `translate(${dx * .5}px,${dy * .5 - 80}px) scale(${(1 + s) / 2 * 1.2}) rotate(${180 + (fromDeg + toDeg) / 2}deg)`, offset: .5 },
+    { transform: `translate(${dx}px,${dy}px) scale(${s}) rotate(${360 + toDeg}deg)` },
+  ], { duration: ms, easing: 'cubic-bezier(.3,.7,.25,1)', fill: 'forwards' }).finished.then(() => { el.remove(); done && done(); });
+}
+
+const slotTarget = () => {
+  const r = lb.slot.getBoundingClientRect(); // rotation keeps the centre
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2, size: lb.slot.offsetWidth };
+};
+const SLOT_DEG = 14;
+
+function openPhotos(list, opener, start = 0) {
+  if (lb.closing) return;
+  lb.list = list; lb.i = start; lb.opener = opener;
+  lb.el.hidden = false;
+  lb.slot.innerHTML = '';
+  requestAnimationFrame(() => lb.el.classList.add('open'));
+  lbShow(false);
+
+  // flower: bouquet -> polaroid
+  const fl = opener && opener.matches && opener.matches('.fl') ? opener : null;
+  if (!fl) return;
+  const bb = fl.getBBox(), r = fl.getBoundingClientRect();
+  const markup = `<svg viewBox="${bb.x} ${bb.y} ${bb.width} ${bb.height}" class="flw-clone" overflow="visible">${fl.innerHTML}</svg>`;
+  lb.flower = { markup, from: r };
+  fl.classList.add('picked');
+  flyFlower(markup, r, slotTarget(), 0, SLOT_DEG, 950, () => { lb.slot.innerHTML = markup; });
+}
+
+function closePhotos(instant) {
+  if (lb.el.hidden || lb.closing) return;
+  lb.token++;
+  const fl = lb.opener && lb.opener.matches && lb.opener.matches('.fl') ? lb.opener : null;
+  const finish = () => {
+    lb.el.hidden = true;
+    lb.closing = false;
+    if (fl) { fl.classList.remove('picked'); fl.classList.add('back'); setTimeout(() => fl.classList.remove('back'), 700); }
+    lb.opener && lb.opener.focus && lb.opener.focus({ preventScroll: true });
+  };
+  lb.el.classList.remove('open');
+  if (!fl || instant || !fl.isConnected) { lb.slot.innerHTML = ''; finish(); return; }
+
+  // flower: polaroid -> back onto its stem
+  lb.closing = true;
+  const t = slotTarget(), size = t.size;
+  const from = { left: t.x - size / 2, top: t.y - size / 2, width: size, height: size };
+  const r = fl.getBoundingClientRect();
+  const to = { x: r.left + r.width / 2, y: r.top + r.height / 2, size: Math.max(r.width, r.height) };
+  const markup = lb.flower.markup;
+  lb.slot.innerHTML = '';
+  flyFlower(markup, from, to, SLOT_DEG, 0, 800, finish);
+}
+
+const lbStep = (d) => { lb.i = (lb.i + d + lb.list.length) % lb.list.length; lbShow(); };
+document.getElementById('lbClose').onclick = () => closePhotos();
+document.getElementById('lbPrev').onclick = (e) => { e.stopPropagation(); lbStep(-1); };
+document.getElementById('lbNext').onclick = (e) => { e.stopPropagation(); lbStep(1); };
+lb.el.addEventListener('click', (e) => { if (e.target === lb.el) closePhotos(); });
+// tap the picture itself = next picture (or close if only one)
+lb.img.addEventListener('click', () => (lb.list.length > 1 ? lbStep(1) : closePhotos()));
+
+/* ---------------- finale (peony): spinning bloom -> capybara -> memory book ---------------- */
+const fin = { open: false, fl: null, el: null, timers: [] };
+const finT = (fn, ms) => { const t = setTimeout(fn, ms); fin.timers.push(t); return t; };
+
+function tapFlower(b, fl) {
+  const f = b.flowers[+fl.dataset.f];
+  if (f.finale) startFinale(b, fl);
+  else openPhotos(f.photos, fl);
+}
+
+const finPhotos = (ids) => {
+  const out = [];
+  ids.forEach((id) => {
+    const b = BOUQUETS.find((x) => x.id === id);
+    if (b) b.flowers.forEach((f) => (f.photos || []).forEach((p) => out.push(p)));
+  });
+  return out;
+};
+
+// load an image, trying the usual extensions when none is given
+function setImg(img, src, onfail) {
+  const hasExt = /\.[a-z0-9]{2,4}$/i.test(src);
+  const tries = hasExt ? [src] : PHOTO_EXT.map((e) => `${src}.${e}`);
+  let n = 0;
+  img.onerror = () => {
+    if (n < tries.length) img.src = tries[n++];
+    else { img.onerror = null; onfail && onfail(); }
+  };
+  img.src = tries[n++];
+}
+const loadImgs = (root, onfail) => root.querySelectorAll('img[data-src]').forEach((img) => setImg(img, img.dataset.src, () => onfail && onfail(img)));
+
+const capySVG = (point) => `<svg viewBox="0 0 200 190" class="capy-svg" aria-hidden="true">
+  <ellipse cx="100" cy="150" rx="72" ry="42" fill="#9a6640"/>
+  <ellipse cx="62" cy="176" rx="17" ry="10" fill="#7d4f2e"/><ellipse cx="138" cy="176" rx="17" ry="10" fill="#7d4f2e"/>
+  <ellipse cx="50" cy="52" rx="14" ry="11" fill="#8a5834"/><ellipse cx="50" cy="53" rx="7" ry="5" fill="#d9a07a"/>
+  <ellipse cx="150" cy="52" rx="14" ry="11" fill="#8a5834"/><ellipse cx="150" cy="53" rx="7" ry="5" fill="#d9a07a"/>
+  <ellipse cx="100" cy="92" rx="66" ry="52" fill="#b27a4c"/>
+  <ellipse cx="100" cy="112" rx="44" ry="32" fill="#c78f5e"/>
+  <ellipse cx="100" cy="94" rx="26" ry="14" fill="#6b3f24"/>
+  <ellipse cx="91" cy="94" rx="4" ry="3" fill="#2d1608"/><ellipse cx="109" cy="94" rx="4" ry="3" fill="#2d1608"/>
+  <circle cx="70" cy="76" r="6" fill="#2d1608"/><circle cx="130" cy="76" r="6" fill="#2d1608"/>
+  <circle cx="72" cy="74" r="2" fill="#fff"/><circle cx="132" cy="74" r="2" fill="#fff"/>
+  <circle cx="58" cy="100" r="9" fill="#ff9aa8" opacity=".45"/><circle cx="142" cy="100" r="9" fill="#ff9aa8" opacity=".45"/>
+  <path d="M88 124Q100 134 112 124" stroke="#6b3f24" stroke-width="3" fill="none" stroke-linecap="round"/>
+  ${point ? '<g class="cpaw"><ellipse cx="30" cy="124" rx="12" ry="21" fill="#9a6640" transform="rotate(32 30 124)"/><ellipse cx="22" cy="106" rx="7" ry="6" fill="#8a5834"/></g>' : ''}
+</svg>`;
+
+// whole-body capybara that wanders along the bottom of the finale: brown or pink
+const CAPY_COL = {
+  brown: { body: '#b27a4c', dark: '#8a5834', snout: '#c78f5e', nose: '#5d3520', ear: '#d9a07a' },
+  pink: { body: '#f3a8bd', dark: '#dc7d99', snout: '#f9c4d3', nose: '#b04a6b', ear: '#ffd9e3' },
+};
+const capyBody = (kind) => {
+  const c = CAPY_COL[kind];
+  const leg = (x, cls) => `<g class="lg ${cls}"><ellipse cx="${x}" cy="113" rx="11" ry="10" fill="${c.dark}"/></g>`;
+  return `<svg viewBox="0 0 240 126" class="capy-body" aria-hidden="true">
+    ${leg(50, 'lg1')}${leg(72, 'lg2')}${leg(140, 'lg2')}${leg(162, 'lg1')}
+    <g transform="translate(0 -9)">
+    <ellipse cx="104" cy="86" rx="84" ry="34" fill="${c.body}"/>
+    <ellipse cx="176" cy="76" rx="36" ry="30" fill="${c.body}"/>
+    <ellipse cx="163" cy="50" rx="9" ry="8" fill="${c.dark}"/><ellipse cx="163" cy="51" rx="4.5" ry="4" fill="${c.ear}"/>
+    <ellipse cx="200" cy="86" rx="22" ry="17" fill="${c.snout}"/>
+    <ellipse cx="211" cy="77" rx="10" ry="7" fill="${c.nose}"/>
+    <circle cx="179" cy="65" r="3.6" fill="#2d1608"/><circle cx="180.3" cy="63.8" r="1.2" fill="#fff"/>
+    <circle cx="170" cy="82" r="6" fill="#ff7f9d" opacity=".4"/>
+    <path d="M192 96Q199 101 207 96" stroke="${c.nose}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    </g>
+  </svg>`;
+};
+// a few of them, each walking back and forth at its own pace
+const walkersHTML = () => {
+  const crew = [
+    { k: 'brown', sz: 108, dur: 26, dly: -4, bot: 6 },
+    { k: 'pink', sz: 92, dur: 34, dly: -19, bot: 16 },
+    { k: 'brown', sz: 64, dur: 30, dly: -11, bot: 2 },
+  ];
+  return `<div class="walkers" aria-hidden="true">${crew.map((w, i) =>
+    `<div class="wk" style="--sz:${w.sz}px;--dur:${w.dur}s;--dly:${w.dly}s;--b:${w.bot}px;--in:${(1.6 + i * .5).toFixed(1)}s">${capyBody(w.k)}</div>`).join('')}</div>`;
+};
+
+function startFinale(b, fl) {
+  if (fin.open || lb.closing) return;
+  fin.open = true; fin.fl = fl;
+  const cfg = b.finale, f = b.flowers[+fl.dataset.f];
+  const pages = finPhotos(cfg.pages), together = finPhotos(cfg.together);
+  const all = pages.concat(together);
+  const S = Math.round(Math.min(innerWidth * .98, innerHeight * .62, 520));
+  const F = Math.round(S * .44);
+  const bb = fl.getBBox(), r = fl.getBoundingClientRect();
+  const vb = `${bb.x} ${bb.y} ${bb.width} ${bb.height}`;
+  const clone = `<svg viewBox="${vb}" class="flw-clone" overflow="visible">${fl.innerHTML}</svg>`;
+  const bloom = `<svg viewBox="${vb}" class="flw-clone" overflow="visible">${Flowers.bloom(f.k || b.kind, f.s, Flowers.PAL[f.p], b.seed + 3, .05)}</svg>`;
+
+  // 3 layers of pictures; they repeat so there are always plenty. Alternate layers spin the other way.
+  const RINGS = [
+    { R: .30, n: 7, w: .11, dur: 52, rev: false },
+    { R: .375, n: 10, w: .105, dur: 64, rev: true },
+    { R: .445, n: 13, w: .095, dur: 80, rev: false },
+  ];
+  let ring = '';
+  RINGS.forEach((rg, k) => {
+    const isz = Math.round(S * rg.w);
+    let items = '';
+    for (let i = 0; i < rg.n; i++) {
+      const p = all[(Math.floor((i * all.length) / rg.n) + k * 4) % all.length];
+      items += `<div class="it" style="--a:${Math.round((i * 360) / rg.n)}deg;--d:${(1.4 + k * .5 + i * .12).toFixed(2)}s"><div class="p"><img alt="" data-src="${p.src}"></div></div>`;
+    }
+    ring += `<div class="orbit" style="--R:${Math.round(S * rg.R)}px;--isz:${isz}px;--dur:${rg.dur}s;--dir:${rg.rev ? 'reverse' : 'normal'};--cdir:${rg.rev ? 'normal' : 'reverse'}">${items}</div>`;
+  });
+
+  const ov = document.createElement('div');
+  ov.className = 'fin';
+  ov.innerHTML = `<button class="ghost round fin-x" aria-label="Close">✕</button>
+    <div class="fin-stage" style="--S:${S}px;--F:${F}px">
+      ${ring}
+      <div class="fin-flower"><div class="fin-clone">${clone}</div><div class="fin-spin"></div></div>
+      <button class="capy" aria-label="Tap the capybara" hidden>
+        <span class="bubble">Psst, tap me! ❤</span>${capySVG(false)}
+      </button>
+    </div>${walkersHTML()}`;
+  document.body.appendChild(ov);
+  fin.el = ov;
+  requestAnimationFrame(() => ov.classList.add('on'));
+  loadImgs(ov, (img) => { const it = img.closest('.it'); it && it.remove(); });
+  ov.querySelector('.fin-x').onclick = () => closeFinale();
+
+  // 1) the peony flies from the bouquet to the middle of the screen, spinning
+  const fe = ov.querySelector('.fin-flower');
+  const t = fe.getBoundingClientRect();
+  const dx = r.left + r.width / 2 - (t.left + t.width / 2), dy = r.top + r.height / 2 - (t.top + t.height / 2);
+  const s0 = Math.max(r.width, r.height) / F;
+  fl.classList.add('picked');
+  fe.animate([
+    { transform: `translate(${dx}px,${dy}px) scale(${s0}) rotate(0deg)` },
+    { transform: 'none' },
+  ], { duration: 1000, easing: 'cubic-bezier(.3,.7,.25,1)' });
+
+  // 2) it blooms while spinning, pictures orbit around it
+  finT(() => {
+    const sp = ov.querySelector('.fin-spin');
+    sp.innerHTML = bloom;
+    sp.classList.add('go');
+    ov.querySelector('.fin-clone').classList.add('fade');
+  }, 1000);
+
+  // 3) the capybara pops out of the middle of the flower
+  finT(() => {
+    const c = ov.querySelector('.capy');
+    c.hidden = false;
+    requestAnimationFrame(() => c.classList.add('on'));
+    c.onclick = () => { c.onclick = null; finBook(ov, pages, together); };
+  }, 5200);
+}
+
+function finBook(ov, pages, together) {
+  ov.querySelector('.fin-stage').classList.add('away');
+  const H = Math.round(Math.min(innerHeight * .56, 460, (innerWidth * .84) / .75)), W = Math.round(H * .75);
+  const total = pages.length;
+  const leaves = [`<div class="bleaf cover"><div class="cv"><span>Our</span><b>Memories</b><i>❀</i></div></div>`]
+    .concat(pages.map((p, i) => `<div class="bleaf"><div class="pg"><div class="pimg"><img alt="" data-src="${p.src}"></div><p>${p.caption || ''}</p><small>${i + 1} / ${total}</small></div></div>`))
+    .concat([`<div class="bleaf last"><div class="pg tog"><h3>Tayong dalawa ❤</h3><div class="tgrid">${
+      together.map((p, i) => `<button class="tg" data-i="${i}" style="--r:${[-4, 3, -2][i % 3]}deg" aria-label="Open picture ${i + 1}"><img alt="" data-src="${p.src}"></button>`).join('')
+    }</div></div></div>`]);
+  const wrap = document.createElement('div');
+  wrap.className = 'book-wrap';
+  wrap.innerHTML = `<div class="book" style="width:${W}px;height:${H}px">${leaves.join('')}</div>
+    <div class="capy2" hidden><span class="bubble">Look, it’s us! Tap a photo ❤</span>${capySVG(true)}</div>
+    <button class="ghost fin-skip">Skip ›</button>`;
+  ov.appendChild(wrap);
+  const book = wrap.querySelector('.book');
+  const els = [...book.querySelectorAll('.bleaf')];
+  els.forEach((el, i) => { el.style.zIndex = els.length - i; });
+  loadImgs(wrap, (img) => { const x = img.closest('.tg, .pimg'); if (x) x.style.display = 'none'; });
+  requestAnimationFrame(() => wrap.classList.add('on'));
+  book.querySelectorAll('.tg').forEach((btn) => { btn.onclick = () => openPhotos(together, null, +btn.dataset.i); });
+
+  const flips = els.slice(0, -1);
+  let k = 0;
+  const done = () => {
+    wrap.querySelector('.fin-skip').hidden = true;
+    const c = wrap.querySelector('.capy2');
+    c.hidden = false;
+    requestAnimationFrame(() => c.classList.add('on'));
+  };
+  const next = () => {
+    if (k >= flips.length) { finT(done, 500); return; }
+    flips[k++].classList.add('flipped');
+    finT(next, k === 1 ? 900 : 340);
+  };
+  finT(next, 1300);
+  wrap.querySelector('.fin-skip').onclick = () => {
+    fin.timers.forEach(clearTimeout); fin.timers = [];
+    book.classList.add('fast');
+    flips.forEach((el) => el.classList.add('flipped'));
+    finT(done, 400);
+  };
+}
+
+function closeFinale(instant) {
+  if (!fin.open) return;
+  fin.open = false;
+  fin.timers.forEach(clearTimeout); fin.timers = [];
+  const ov = fin.el, fl = fin.fl;
+  fin.el = null; fin.fl = null;
+  if (fl) {
+    fl.classList.remove('picked');
+    if (!instant) { fl.classList.add('back'); setTimeout(() => fl.classList.remove('back'), 700); }
+  }
+  if (!ov) return;
+  if (instant) { ov.remove(); return; }
+  ov.classList.remove('on');
+  setTimeout(() => ov.remove(), 400);
+}
+
 /* ---------------- page transition ---------------- */
 async function transition(fn, ev, color) {
   if (busy) return;
@@ -122,18 +453,21 @@ async function transition(fn, ev, color) {
   busy = false;
 }
 
-const openBouquet = (i, ev) => transition(() => { location.hash = `#/${BOUQUETS[i].id}`; }, ev, BOUQUETS[i].theme.glow);
-const openHome = (ev, color) => transition(() => { location.hash = '#/'; }, ev, color || HOME_THEME.glow);
+// in-page route (no URL hash, so it also works inside the artifact viewer)
+let route = '';
+const openBouquet = (i, ev) => transition(() => { route = BOUQUETS[i].id; render(); }, ev, BOUQUETS[i].theme.glow);
+const openHome = (ev, color) => transition(() => { route = ''; render(); }, ev, color || HOME_THEME.glow);
 
 /* ---------------- router ---------------- */
 function render() {
   clearTimeout(typeTimer);
-  const id = location.hash.replace('#/', '');
+  closePhotos(true);
+  closeFinale(true);
+  const id = route;
   const i = BOUQUETS.findIndex((b) => b.id === id);
   app.scrollTop = 0;
   i >= 0 ? showBouquet(i) : showHome();
 }
-window.addEventListener('hashchange', render);
 
 /* ---------------- HOME ---------------- */
 function showHome() {
@@ -246,6 +580,7 @@ function showBouquet(i) {
       <div class="bouquet-wrap" id="bwrap"><div class="halo"></div><div class="bob">${svg}</div></div>
       <article class="msg">
         <p class="kicker">${b.name} · ${b.sub}</p>
+        <p class="tap-hint">✿ Tap a flower to see a memory</p>
         <h2>For you, ${CONFIG.to}</h2>
         <div class="text" id="text">${b.message.map((l) => `<p>${words(l)}</p>`).join('')}</div>
         <p class="sig" id="sig">${CONFIG.from}</p>
@@ -264,7 +599,16 @@ function showBouquet(i) {
   document.getElementById('next2').onclick = (e) => go(i + 1, e);
   document.getElementById('mute').onclick = (e) => toggleMute(e.currentTarget);
   document.getElementById('replay').onclick = () => { music.id = null; render(); };
-  document.getElementById('bwrap').onclick = (e) => burst(e.clientX, e.clientY, [b.theme.glow, '#fff', ...b.theme.rain]);
+  const colors = [b.theme.glow, '#fff', ...b.theme.rain];
+  document.getElementById('bwrap').onclick = (e) => {
+    const fl = e.target.closest('.fl');
+    if (fl) { burst(e.clientX, e.clientY, colors); tapFlower(b, fl); return; }
+    burst(e.clientX, e.clientY, colors);
+  };
+  document.getElementById('bwrap').onkeydown = (e) => {
+    const fl = e.target.closest && e.target.closest('.fl');
+    if (fl && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); tapFlower(b, fl); }
+  };
 
   // typewriter reveal
   const chars = [...app.querySelectorAll('.c')];
@@ -283,7 +627,14 @@ function showBouquet(i) {
 
 /* keyboard */
 window.addEventListener('keydown', (e) => {
-  const i = BOUQUETS.findIndex((b) => location.hash === `#/${b.id}`);
+  if (!lb.el.hidden) {
+    if (e.key === 'Escape') closePhotos();
+    if (e.key === 'ArrowRight' && lb.list.length > 1) lbStep(1);
+    if (e.key === 'ArrowLeft' && lb.list.length > 1) lbStep(-1);
+    return;
+  }
+  if (fin.open) { if (e.key === 'Escape') closeFinale(); return; }
+  const i = BOUQUETS.findIndex((b) => route === b.id);
   if (i < 0) return;
   if (e.key === 'ArrowRight') document.getElementById('next')?.click();
   if (e.key === 'ArrowLeft') document.getElementById('prev')?.click();

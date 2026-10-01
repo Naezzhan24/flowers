@@ -13,6 +13,19 @@
   <div id="rain" aria-hidden="true"></div>
   <main id="app"></main>
   <div id="wipe" aria-hidden="true"></div>
+  <div id="lightbox" class="lb" hidden>
+    <figure class="polaroid" id="lbCard">
+      <button class="ghost round lb-x" id="lbClose" aria-label="Close">✕</button>
+      <div class="lb-flower" id="lbFlower" aria-hidden="true"></div>
+      <div class="ph"><img id="lbImg" alt=""><p class="ph-miss" id="lbMiss"></p></div>
+      <figcaption id="lbCap"></figcaption>
+      <div class="lb-nav" id="lbNav">
+        <button class="ghost round" id="lbPrev" aria-label="Previous picture">‹</button>
+        <span id="lbCount"></span>
+        <button class="ghost round" id="lbNext" aria-label="Next picture">›</button>
+      </div>
+    </figure>
+  </div>
   <script src="bouquets.js"></script>
   <script src="flowers.js"></script>
   <script src="script.js"></script>

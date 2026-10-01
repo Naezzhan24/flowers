@@ -130,12 +130,46 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
   box-shadow: 0 30px 60px -30px rgba(0,0,0,.5); animation: fadeup 1s .4s both;
 }
 .kicker { font-size: .72rem; letter-spacing: .3em; text-transform: uppercase; opacity: .7; }
-.msg h2 { font-family: var(--script); font-weight: 400; font-size: clamp(2.2rem, 6vw, 3rem); margin: 4px 0 6px; }
-.text p { font-family: var(--hand); font-size: clamp(1.25rem, 2.6vw, 1.55rem); line-height: 1.45; margin: .55em 0; }
+.msg h2 { font-family: var(--ui); font-weight: 600; font-size: clamp(1.6rem, 4.5vw, 2.1rem); margin: 4px 0 6px; }
+.text p { font-family: var(--ui); font-weight: 500; font-size: clamp(1rem, 2.2vw, 1.15rem); line-height: 1.7; margin: .7em 0; }
+.tap-hint { font-size: .8rem; opacity: .75; margin-top: 6px; animation: nudge2 2.4s ease-in-out infinite; }
+@keyframes nudge2 { 50% { opacity: 1; transform: translateY(-2px); } }
+
+/* tappable flowers */
+.fl { cursor: pointer; outline: none; }
+.fl:hover .sway, .fl:focus-visible .sway { filter: brightness(1.12) drop-shadow(0 0 8px var(--glow)); }
+
+/* flower that was picked: hidden on its stem while it sits on the polaroid */
+.fl.picked { visibility: hidden; }
+.fl.back { animation: regrow .6s cubic-bezier(.3,1.6,.5,1); }
+@keyframes regrow { from { opacity: 0; } to { opacity: 1; } }
+.fly { position: fixed; z-index: 70; pointer-events: none; transform-origin: center; filter: drop-shadow(0 10px 14px rgba(0,0,0,.4)); }
+.fly svg, .lb-flower svg { width: 100%; height: 100%; overflow: visible; display: block; }
+/* cloned flower must not replay the bloom animation */
+.flw-clone .petal { animation: none; transform: none; opacity: 1; }
+.flw-clone .core { animation: none; opacity: 1; }
+.flw-clone .spin { animation: none; }
+.flw-clone .sway { animation: sway 6s ease-in-out infinite alternate; }
+
+/* picture popup */
+.lb { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(10,4,14,.72); backdrop-filter: blur(6px); opacity: 0; transition: opacity .3s; }
+.lb[hidden] { display: none; }
+.lb.open { opacity: 1; }
+.polaroid { position: relative; width: min(86vw, 380px); padding: 14px 14px 18px; background: #fffaf5; color: #3a2230; border-radius: 6px; box-shadow: 0 30px 70px -20px rgba(0,0,0,.7); text-align: center; }
+.polaroid.flip { animation: polain .5s cubic-bezier(.2,.9,.3,1); }
+@keyframes polain { from { transform: translateY(24px) rotate(-4deg) scale(.92); opacity: .4; } to { transform: none; opacity: 1; } }
+.ph { position: relative; aspect-ratio: 1; background: #eadfe3; overflow: hidden; display: grid; place-items: center; }
+.ph img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; display: none; }
+.ph-miss { display: none; padding: 18px; font-size: .85rem; line-height: 1.5; color: #7a5a68; word-break: break-word; }
+.polaroid figcaption { font-family: var(--ui); font-weight: 600; font-size: 1.05rem; line-height: 1.5; margin-top: 12px; padding: 0 6px; }
+.lb-nav { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 10px; font-size: .85rem; }
+.polaroid .ghost { color: #3a2230; background: rgba(58,34,48,.08); border-color: rgba(58,34,48,.18); }
+.lb-flower { position: absolute; top: -42px; left: -38px; width: 104px; height: 104px; transform: rotate(14deg); pointer-events: none; filter: drop-shadow(0 8px 10px rgba(0,0,0,.35)); z-index: 2; }
+.lb-x { position: absolute; top: -14px; right: -14px; width: 36px; height: 36px; font-size: .9rem; background: #fff !important; box-shadow: 0 6px 16px rgba(0,0,0,.35); }
 .w { display: inline-block; white-space: nowrap; }
 .c { opacity: 0; filter: blur(4px); transition: opacity .5s, filter .5s; }
 .c.on { opacity: 1; filter: none; }
-.sig { font-family: var(--script); font-size: 1.9rem; margin-top: 10px; text-align: right; opacity: 0; transform: translateY(8px); transition: 1s; }
+.sig { font-family: var(--ui); font-weight: 600; font-size: 1.15rem; margin-top: 10px; text-align: right; opacity: 0; transform: translateY(8px); transition: 1s; }
 .sig.on { opacity: 1; transform: none; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
 
@@ -172,3 +206,118 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
   .rp, body::before, body::after { display: none; }
 }
 @media (max-width: 800px) { .stage { flex-direction: column; } }
+
+/* ============ FINALE: spinning peony, capybara, memory book ============ */
+.fin { position: fixed; inset: 0; z-index: 55; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  background: radial-gradient(90% 70% at 50% 40%, rgba(120,40,90,.82), rgba(22,6,22,.94)); backdrop-filter: blur(6px);
+  opacity: 0; transition: opacity .4s; overflow: hidden; }
+.fin.on { opacity: 1; }
+.fin-x { position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px; z-index: 5; }
+
+.fin-stage { position: relative; width: var(--S); height: var(--S); transition: opacity .6s, transform .6s; }
+.fin-stage.away { opacity: 0; transform: scale(.8); pointer-events: none; }
+.fin-flower { position: absolute; left: 50%; top: 50%; width: var(--F); height: var(--F); margin: calc(var(--F) / -2) 0 0 calc(var(--F) / -2); filter: drop-shadow(0 14px 24px rgba(0,0,0,.45)); }
+.fin-clone, .fin-spin { position: absolute; inset: 0; }
+.fin-clone svg, .fin-spin svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.fin-clone { transition: opacity 1.6s; }
+.fin-clone.fade { opacity: 0; }
+.fin-spin.go { animation: finspin 24s linear infinite; }
+@keyframes finspin { to { transform: rotate(360deg); } }
+/* the bloom in the spinner should unfurl, not sway */
+.fin-spin .sway { animation: none; }
+
+.orbit { position: absolute; inset: 0; animation: finspin var(--dur) linear infinite var(--dir); }
+.it { position: absolute; left: 50%; top: 50%; width: var(--isz); height: calc(var(--isz) * 1.22);
+  margin: calc(var(--isz) * -.61) 0 0 calc(var(--isz) / -2);
+  transform: rotate(var(--a)) translateY(calc(var(--R) * -1)) rotate(calc(var(--a) * -1)); }
+.it .p { width: 100%; height: 100%; padding: 3px 3px 9px; background: #fffaf5; border-radius: 3px; box-shadow: 0 10px 22px rgba(0,0,0,.45);
+  opacity: 0; animation: finspin var(--dur) linear infinite var(--cdir), fadein .8s var(--d) forwards; }
+.it img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 2px; }
+
+/* capybara peeking out of the flower centre */
+.capy { position: absolute; left: 50%; top: 50%; width: calc(var(--S) * .27); transform: translate(-50%, -30%) scale(0); transform-origin: 50% 85%;
+  cursor: pointer; padding: 0; opacity: 0; filter: drop-shadow(0 10px 14px rgba(0,0,0,.4)); }
+.capy[hidden] { display: none; }
+.capy.on { animation: capypop 2.6s ease-in-out forwards, capybob 2.2s 2.7s ease-in-out infinite; }
+.capy .bubble { opacity: 0; animation: fadein .5s 2.4s forwards; }
+/* struggles out of the flower: peeks, slips back, wiggles, pushes harder, then bursts out */
+@keyframes capypop {
+  0%   { opacity: 0; transform: translate(-50%, -30%) scale(.1) rotate(0deg); }
+  14%  { opacity: 1; transform: translate(-50%, -40%) scale(.4, .5) rotate(-7deg); }
+  26%  { transform: translate(-50%, -34%) scale(.3, .36) rotate(6deg); }
+  40%  { transform: translate(-50%, -46%) scale(.58, .66) rotate(-8deg); }
+  52%  { transform: translate(-50%, -38%) scale(.46, .52) rotate(7deg); }
+  66%  { transform: translate(-50%, -50%) scale(.76, .86) rotate(-5deg); }
+  76%  { transform: translate(-50%, -44%) scale(.7, .76) rotate(4deg); }
+  90%  { transform: translate(-50%, -68%) scale(.94, 1.12) rotate(0deg); }
+  100% { opacity: 1; transform: translate(-50%, -60%) scale(1) rotate(0deg); }
+}
+@keyframes capybob { 50% { margin-top: -8px; } }
+.capy-svg { width: 100%; display: block; }
+.bubble { position: absolute; left: 50%; bottom: calc(100% - 2px); transform: translateX(-50%); white-space: nowrap; font-size: .85rem; font-weight: 600;
+  padding: 7px 12px; border-radius: 14px; background: #fffaf5; color: #3a2230; box-shadow: 0 6px 16px rgba(0,0,0,.35); }
+.bubble::after { content: ''; position: absolute; left: 50%; top: 100%; margin-left: -6px; border: 6px solid transparent; border-top-color: #fffaf5; }
+
+/* memory book: pages flip away one by one, the last page stays */
+.book-wrap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  opacity: 0; transform: scale(.9); transition: opacity .6s, transform .6s; perspective: 1400px; }
+.book-wrap.on { opacity: 1; transform: none; }
+.book { position: relative; max-width: 86vw; filter: drop-shadow(0 24px 30px rgba(0,0,0,.5)); }
+.bleaf { position: absolute; inset: 0; transform-origin: left center; border-radius: 6px 12px 12px 6px; overflow: hidden; background: #fffaf5;
+  transition: transform .55s ease-in, opacity .25s .3s; box-shadow: inset 8px 0 14px -8px rgba(0,0,0,.25); }
+.bleaf.flipped { transform: rotateY(-105deg); opacity: 0; pointer-events: none; }
+.book.fast .bleaf { transition: none; }
+.cover { background: linear-gradient(150deg, #f07aa3, #b8456f); color: #fff; }
+.cv { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; border: 2px solid rgba(255,255,255,.55); margin: 12px; height: calc(100% - 24px); border-radius: 8px; }
+.cv span { font-size: .95rem; letter-spacing: .4em; text-transform: uppercase; opacity: .9; }
+.cv b { font-size: clamp(1.8rem, 8vw, 2.4rem); font-weight: 700; }
+.cv i { font-style: normal; font-size: 1.8rem; opacity: .9; }
+.pg { height: 100%; padding: 16px 16px 12px; display: flex; flex-direction: column; gap: 8px; color: #3a2230; }
+.pimg { flex: 1; min-height: 0; background: #eadfe3; border-radius: 3px; overflow: hidden; }
+.pimg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pg p { font-weight: 600; font-size: .92rem; line-height: 1.4; text-align: center; min-height: 2.6em; }
+.pg small { text-align: center; font-size: .72rem; opacity: .55; letter-spacing: .15em; }
+.tog { align-items: center; }
+.tog h3 { font-weight: 700; font-size: 1.25rem; padding-top: 4px; }
+.tgrid { flex: 1; min-height: 0; width: 100%; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 10px; }
+.tg { width: 46%; aspect-ratio: 3 / 4; padding: 5px 5px 14px; background: #fff; border-radius: 3px; box-shadow: 0 8px 18px rgba(0,0,0,.28);
+  transform: rotate(var(--r)); transition: transform .3s; cursor: pointer; animation: tgpulse 2.2s ease-in-out infinite; }
+.tg:hover { transform: rotate(0) scale(1.06); }
+.tg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+@keyframes tgpulse { 50% { box-shadow: 0 8px 18px rgba(0,0,0,.28), 0 0 0 4px rgba(240,122,163,.55); } }
+
+.capy2 { position: relative; width: min(30vw, 120px); align-self: flex-end; margin-right: max(12px, calc(50% - 46vw)); opacity: 0; transform: translateX(60px); transition: opacity .6s, transform .7s cubic-bezier(.2,.9,.3,1); }
+.capy2[hidden] { display: none; }
+.capy2.on { opacity: 1; transform: none; }
+.capy2 .bubble { left: auto; right: 40%; transform: none; }
+.capy2 .bubble::after { left: auto; right: 22px; margin-left: 0; }
+.cpaw { transform-origin: 30px 150px; animation: point 1s ease-in-out infinite alternate; }
+@keyframes point { from { transform: rotate(-10deg); } to { transform: rotate(8deg); } }
+.fin-skip { position: absolute; bottom: max(16px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); }
+.fin-skip[hidden] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit, .it .p, .fin-spin.go { animation-duration: 0s; }
+}
+
+/* a few capybaras wandering along the bottom of the finale */
+.walkers { position: absolute; left: 0; right: 0; bottom: 0; height: 130px; pointer-events: none; z-index: 1; overflow: hidden;
+  background: linear-gradient(to top, rgba(255,150,190,.16), transparent); }
+.wk { position: absolute; left: 0; bottom: var(--b); width: var(--sz); opacity: 0;
+  animation: wander var(--dur) linear var(--dly) infinite, fadein .8s var(--in) forwards; }
+/* walk right, turn around, walk back left */
+@keyframes wander {
+  0%      { transform: translateX(0) scaleX(1); }
+  49.9%   { transform: translateX(calc(100vw - var(--sz))) scaleX(1); }
+  50%     { transform: translateX(calc(100vw - var(--sz))) scaleX(-1); }
+  99.9%   { transform: translateX(0) scaleX(-1); }
+  100%    { transform: translateX(0) scaleX(1); }
+}
+.capy-body { width: 100%; display: block; overflow: visible; animation: walkbob .56s ease-in-out infinite alternate; filter: drop-shadow(0 6px 8px rgba(0,0,0,.35)); }
+@keyframes walkbob { from { transform: translateY(0) rotate(-1deg); } to { transform: translateY(-4px) rotate(1deg); } }
+.lg { transform-box: fill-box; transform-origin: 50% 0; animation: legstep .56s ease-in-out infinite alternate; }
+.lg2 { animation-direction: alternate-reverse; }
+@keyframes legstep { from { transform: translateY(0) rotate(-14deg); } to { transform: translateY(-6px) rotate(14deg); } }
+/* keep the Skip button clear of the floor */
+.fin-skip { bottom: calc(max(6px, env(safe-area-inset-bottom)) + 84px); }
+@media (prefers-reduced-motion: reduce) { .capy-body, .lg, .wk { animation: none; opacity: 1; } }
