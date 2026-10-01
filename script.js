@@ -267,34 +267,40 @@ const capySVG = (point) => `<svg viewBox="0 0 200 190" class="capy-svg" aria-hid
   ${point ? '<g class="cpaw"><ellipse cx="30" cy="124" rx="12" ry="21" fill="#9a6640" transform="rotate(32 30 124)"/><ellipse cx="22" cy="106" rx="7" ry="6" fill="#8a5834"/></g>' : ''}
 </svg>`;
 
-// whole-body capybara that wanders along the bottom of the finale: brown or pink
+// whole-body capybara that wanders along the bottom of the finale (side view, facing right)
 const CAPY_COL = {
-  brown: { body: '#b27a4c', dark: '#8a5834', snout: '#c78f5e', nose: '#5d3520', ear: '#d9a07a' },
-  pink: { body: '#f3a8bd', dark: '#dc7d99', snout: '#f9c4d3', nose: '#b04a6b', ear: '#ffd9e3' },
+  brown: { back: '#744b2b', mid: '#a5703f', belly: '#cb9d6b', snout: '#b98655', nose: '#3f2514', dark: '#573620', ear: '#6e4627' },
+  pink: { back: '#d4829b', mid: '#f0a8bc', belly: '#f9cfda', snout: '#f5bccb', nose: '#9e3f63', dark: '#bf6481', ear: '#cf7893' },
 };
+let capyUid = 0;
 const capyBody = (kind) => {
-  const c = CAPY_COL[kind];
-  const leg = (x, cls) => `<g class="lg ${cls}"><ellipse cx="${x}" cy="113" rx="11" ry="10" fill="${c.dark}"/></g>`;
-  return `<svg viewBox="0 0 240 126" class="capy-body" aria-hidden="true">
-    ${leg(50, 'lg1')}${leg(72, 'lg2')}${leg(140, 'lg2')}${leg(162, 'lg1')}
-    <g transform="translate(0 -9)">
-    <ellipse cx="104" cy="86" rx="84" ry="34" fill="${c.body}"/>
-    <ellipse cx="176" cy="76" rx="36" ry="30" fill="${c.body}"/>
-    <ellipse cx="163" cy="50" rx="9" ry="8" fill="${c.dark}"/><ellipse cx="163" cy="51" rx="4.5" ry="4" fill="${c.ear}"/>
-    <ellipse cx="200" cy="86" rx="22" ry="17" fill="${c.snout}"/>
-    <ellipse cx="211" cy="77" rx="10" ry="7" fill="${c.nose}"/>
-    <circle cx="179" cy="65" r="3.6" fill="#2d1608"/><circle cx="180.3" cy="63.8" r="1.2" fill="#fff"/>
-    <circle cx="170" cy="82" r="6" fill="#ff7f9d" opacity=".4"/>
-    <path d="M192 96Q199 101 207 96" stroke="${c.nose}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  const c = CAPY_COL[kind], id = `cg${capyUid++}`;
+  const leg = (x, cls) => `<g class="lg ${cls}"><path d="M${x} 96h15v28q0 6-7.5 6t-7.5-6z" fill="${c.dark}"/><path d="M${x + 1} 126h13v4h-13z" fill="${c.nose}"/></g>`;
+  return `<svg viewBox="0 0 270 140" class="capy-body" aria-hidden="true">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${c.back}"/><stop offset=".55" stop-color="${c.mid}"/><stop offset="1" stop-color="${c.belly}"/>
+    </linearGradient></defs>
+    <ellipse cx="128" cy="133" rx="104" ry="5" fill="#000" opacity=".22"/>
+    ${leg(52, 'lg1')}${leg(76, 'lg2')}${leg(158, 'lg2')}${leg(182, 'lg1')}
+    <path d="M26 92C20 58 62 36 122 36C176 36 212 48 224 74C232 94 218 114 194 118L62 118C42 118 29 108 26 92Z" fill="url(#${id})"/>
+    <g stroke="${c.dark}" stroke-width="1.6" stroke-linecap="round" opacity=".28" fill="none">
+      <path d="M52 56l7 6M74 46l6 7M100 42l5 7M128 40l4 7M156 42l4 7M184 50l5 6M62 76l7 5M92 66l6 6M122 64l5 6M152 66l5 6M182 72l6 5"/>
     </g>
+    <path d="M206 54C220 40 244 42 254 54C262 66 262 84 254 94C246 104 226 106 214 100C200 92 196 70 206 54Z" fill="${c.mid}"/>
+    <path d="M232 66C246 62 260 70 261 84C261 96 250 104 238 102C226 100 224 76 232 66Z" fill="${c.snout}"/>
+    <ellipse cx="252" cy="62" rx="9" ry="6.5" fill="${c.nose}"/>
+    <ellipse cx="249" cy="62" rx="2" ry="1.6" fill="#000" opacity=".5"/><ellipse cx="256" cy="62" rx="2" ry="1.6" fill="#000" opacity=".5"/>
+    <path d="M241 93Q250 98 258 93" stroke="${c.nose}" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <ellipse cx="215" cy="46" rx="7" ry="6" fill="${c.ear}"/><ellipse cx="215" cy="47" rx="3.4" ry="3" fill="${c.belly}" opacity=".7"/>
+    <circle cx="228" cy="60" r="3.6" fill="#1d0f06"/><circle cx="229.2" cy="58.8" r="1.2" fill="#fff"/>
   </svg>`;
 };
 // a few of them, each walking back and forth at its own pace
 const walkersHTML = () => {
   const crew = [
-    { k: 'brown', sz: 108, dur: 26, dly: -4, bot: 6 },
-    { k: 'pink', sz: 92, dur: 34, dly: -19, bot: 16 },
-    { k: 'brown', sz: 64, dur: 30, dly: -11, bot: 2 },
+    { k: 'brown', sz: 176, dur: 30, dly: -4, bot: 4 },
+    { k: 'pink', sz: 148, dur: 40, dly: -24, bot: 14 },
+    { k: 'brown', sz: 100, dur: 34, dly: -13, bot: 0 },
   ];
   return `<div class="walkers" aria-hidden="true">${crew.map((w, i) =>
     `<div class="wk" style="--sz:${w.sz}px;--dur:${w.dur}s;--dly:${w.dly}s;--b:${w.bot}px;--in:${(1.6 + i * .5).toFixed(1)}s">${capyBody(w.k)}</div>`).join('')}</div>`;
@@ -370,19 +376,29 @@ function startFinale(b, fl) {
     const c = ov.querySelector('.capy');
     c.hidden = false;
     requestAnimationFrame(() => c.classList.add('on'));
-    c.onclick = () => { c.onclick = null; finBook(ov, pages, together); };
+    const openBook = () => {
+      c.onclick = null;
+      finBook(ov, pages, together, cfg.letter, () => { c.onclick = openBook; });
+    };
+    c.onclick = openBook;
   }, 5200);
 }
 
-function finBook(ov, pages, together) {
-  ov.querySelector('.fin-stage').classList.add('away');
-  const H = Math.round(Math.min(innerHeight * .56, 460, (innerWidth * .84) / .75)), W = Math.round(H * .75);
+function finBook(ov, pages, together, letter, onClosed) {
+  const stage = ov.querySelector('.fin-stage');
+  stage.classList.add('away');
+  const H = Math.round(Math.min(innerHeight * .54, 460, (innerWidth * .84) / .75)), W = Math.round(H * .75);
   const total = pages.length;
+  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const L = letter || { title: 'Dear you,', paragraphs: [], sign: '' };
   const leaves = [`<div class="bleaf cover"><div class="cv"><span>Our</span><b>Memories</b><i>❀</i></div></div>`]
     .concat(pages.map((p, i) => `<div class="bleaf"><div class="pg"><div class="pimg"><img alt="" data-src="${p.src}"></div><p>${p.caption || ''}</p><small>${i + 1} / ${total}</small></div></div>`))
-    .concat([`<div class="bleaf last"><div class="pg tog"><h3>Tayong dalawa ❤</h3><div class="tgrid">${
+    .concat([`<div class="bleaf"><div class="pg tog"><h3>Tayong dalawa ❤</h3><div class="tgrid">${
       together.map((p, i) => `<button class="tg" data-i="${i}" style="--r:${[-4, 3, -2][i % 3]}deg" aria-label="Open picture ${i + 1}"><img alt="" data-src="${p.src}"></button>`).join('')
-    }</div></div></div>`]);
+    }</div><button class="ghost to-letter">Read my letter ✉</button></div></div>`])
+    .concat([`<div class="bleaf last"><div class="pg lt"><h3>${esc(L.title)}</h3><div class="ltxt">${
+      L.paragraphs.map((t) => `<p>${esc(t)}</p>`).join('')
+    }${L.sign ? `<p class="lsign">${esc(L.sign)}</p>` : ''}</div><div class="lact"><button class="ghost lt-back">‹ Photos</button><button class="ghost lt-close">Close the book ❤</button></div></div></div>`]);
   const wrap = document.createElement('div');
   wrap.className = 'book-wrap';
   wrap.innerHTML = `<div class="book" style="width:${W}px;height:${H}px">${leaves.join('')}</div>
@@ -396,13 +412,15 @@ function finBook(ov, pages, together) {
   requestAnimationFrame(() => wrap.classList.add('on'));
   book.querySelectorAll('.tg').forEach((btn) => { btn.onclick = () => openPhotos(together, null, +btn.dataset.i); });
 
-  const flips = els.slice(0, -1);
-  let k = 0;
+  const togLeaf = els[els.length - 2];
+  const capy2 = wrap.querySelector('.capy2');
+  const flips = els.slice(0, -2); // cover + photo pages flip by themselves; the "together" page waits for a tap
+  let k = 0, onLetter = false;
   const done = () => {
     wrap.querySelector('.fin-skip').hidden = true;
-    const c = wrap.querySelector('.capy2');
-    c.hidden = false;
-    requestAnimationFrame(() => c.classList.add('on'));
+    if (onLetter) return;
+    capy2.hidden = false;
+    requestAnimationFrame(() => capy2.classList.add('on'));
   };
   const next = () => {
     if (k >= flips.length) { finT(done, 500); return; }
@@ -414,7 +432,22 @@ function finBook(ov, pages, together) {
     fin.timers.forEach(clearTimeout); fin.timers = [];
     book.classList.add('fast');
     flips.forEach((el) => el.classList.add('flipped'));
-    finT(done, 400);
+    finT(() => { book.classList.remove('fast'); done(); }, 400);
+  };
+
+  // photos page <-> letter page
+  wrap.querySelector('.to-letter').onclick = () => { onLetter = true; togLeaf.classList.add('flipped'); capy2.classList.remove('on'); };
+  wrap.querySelector('.lt-back').onclick = () => { onLetter = false; togLeaf.classList.remove('flipped'); capy2.hidden = false; capy2.classList.add('on'); };
+
+  // close the book: pages turn back to the cover, then the bloom scene returns
+  wrap.querySelector('.lt-close').onclick = () => {
+    onLetter = true;
+    capy2.classList.remove('on');
+    const back = els.slice(0, -1).filter((el) => el.classList.contains('flipped')).reverse();
+    back.forEach((el, i) => finT(() => el.classList.remove('flipped'), 120 + i * 70));
+    const t = 120 + back.length * 70 + 900;
+    finT(() => { wrap.classList.remove('on'); stage.classList.remove('away'); }, t);
+    finT(() => { wrap.remove(); onClosed && onClosed(); }, t + 700);
   };
 }
 

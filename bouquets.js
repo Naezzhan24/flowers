@@ -189,7 +189,20 @@ const BOUQUETS = [
     preview: { k: 'peony', p: 'peony', s: 76, vb: '-90 -90 180 180' },
     // isang malaking peony lang: pag tinap, lalabas ang finale (spin + bloom -> capybara -> libro)
     // pages = bouquets na ang pictures ay nasa libro, together = pictures na magkasama (last page)
-    finale: { pages: ['a', 'c', 'd'], together: ['b'] },
+    finale: {
+      pages: ['a', 'c', 'd'],
+      together: ['b'],
+      // ISULAT MO DITO ANG LETTER: bawat linya sa paragraphs ay isang paragraph. (placeholder pa ito)
+      letter: {
+        title: 'Dear Anne,',
+        paragraphs: [
+          'Dito mo ilalagay ang letter mo para kay Anne.',
+          'Isulat mo ang gusto mong sabihin, kahit gaano kahaba. Mag-i-scroll ito sa loob ng page kung humaba.',
+          'Isang linya sa listahan na ito = isang paragraph.',
+        ],
+        sign: '— Jiroom ❤',
+      },
+    },
     flowers: [{ p: 'peony', x: 200, y: 168, s: 108, finale: true }],
     message: [
       'Peonies, because they say these are the flowers of romance, good fortune, and a happy life.',
