@@ -278,9 +278,10 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .pg p { font-weight: 600; font-size: .92rem; line-height: 1.4; text-align: center; min-height: 2.6em; }
 .pg small { text-align: center; font-size: .72rem; opacity: .55; letter-spacing: .15em; }
 .tog { align-items: center; }
+.tog .to-letter { flex: none; }
 .tog h3 { font-weight: 700; font-size: 1.25rem; padding-top: 4px; }
 .tgrid { flex: 1; min-height: 0; width: 100%; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 10px; }
-.tg { width: 46%; aspect-ratio: 3 / 4; padding: 5px 5px 14px; background: #fff; border-radius: 3px; box-shadow: 0 8px 18px rgba(0,0,0,.28);
+.tg { width: 38%; aspect-ratio: 3 / 4; padding: 5px 5px 14px; background: #fff; border-radius: 3px; box-shadow: 0 8px 18px rgba(0,0,0,.28);
   transform: rotate(var(--r)); transition: transform .3s; cursor: pointer; animation: tgpulse 2.2s ease-in-out infinite; }
 .tg:hover { transform: rotate(0) scale(1.06); }
 .tg img { width: 100%; height: 100%; object-fit: cover; display: block; }

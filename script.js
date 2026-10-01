@@ -251,21 +251,38 @@ function setImg(img, src, onfail) {
 }
 const loadImgs = (root, onfail) => root.querySelectorAll('img[data-src]').forEach((img) => setImg(img, img.dataset.src, () => onfail && onfail(img)));
 
-const capySVG = (point) => `<svg viewBox="0 0 200 190" class="capy-svg" aria-hidden="true">
-  <ellipse cx="100" cy="150" rx="72" ry="42" fill="#9a6640"/>
-  <ellipse cx="62" cy="176" rx="17" ry="10" fill="#7d4f2e"/><ellipse cx="138" cy="176" rx="17" ry="10" fill="#7d4f2e"/>
-  <ellipse cx="50" cy="52" rx="14" ry="11" fill="#8a5834"/><ellipse cx="50" cy="53" rx="7" ry="5" fill="#d9a07a"/>
-  <ellipse cx="150" cy="52" rx="14" ry="11" fill="#8a5834"/><ellipse cx="150" cy="53" rx="7" ry="5" fill="#d9a07a"/>
-  <ellipse cx="100" cy="92" rx="66" ry="52" fill="#b27a4c"/>
-  <ellipse cx="100" cy="112" rx="44" ry="32" fill="#c78f5e"/>
-  <ellipse cx="100" cy="94" rx="26" ry="14" fill="#6b3f24"/>
-  <ellipse cx="91" cy="94" rx="4" ry="3" fill="#2d1608"/><ellipse cx="109" cy="94" rx="4" ry="3" fill="#2d1608"/>
-  <circle cx="70" cy="76" r="6" fill="#2d1608"/><circle cx="130" cy="76" r="6" fill="#2d1608"/>
-  <circle cx="72" cy="74" r="2" fill="#fff"/><circle cx="132" cy="74" r="2" fill="#fff"/>
-  <circle cx="58" cy="100" r="9" fill="#ff9aa8" opacity=".45"/><circle cx="142" cy="100" r="9" fill="#ff9aa8" opacity=".45"/>
-  <path d="M88 124Q100 134 112 124" stroke="#6b3f24" stroke-width="3" fill="none" stroke-linecap="round"/>
-  ${point ? '<g class="cpaw"><ellipse cx="30" cy="124" rx="12" ry="21" fill="#9a6640" transform="rotate(32 30 124)"/><ellipse cx="22" cy="106" rx="7" ry="6" fill="#8a5834"/></g>' : ''}
+// front-facing capybara (peeks out of the peony, and points at the photos in the book)
+const capySVG = (point) => {
+  const id = `cf${capyUid++}`;
+  return `<svg viewBox="0 0 200 190" class="capy-svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="${id}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6e4526"/><stop offset="1" stop-color="#a06c3c"/></linearGradient>
+    <linearGradient id="${id}h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a4d2b"/><stop offset=".55" stop-color="#a06c3c"/><stop offset="1" stop-color="#b98555"/></linearGradient>
+    <linearGradient id="${id}m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b98555"/><stop offset="1" stop-color="#d1a374"/></linearGradient>
+  </defs>
+  <ellipse cx="100" cy="166" rx="84" ry="44" fill="url(#${id}b)"/>
+  <g stroke="#4d2f19" stroke-width="1.6" stroke-linecap="round" opacity=".3" fill="none">
+    <path d="M44 150l6 6M62 138l5 7M138 138l-5 7M156 150l-6 6M80 162l5 6M120 162l-5 6"/>
+  </g>
+  <g fill="#573620"><path d="M44 168h34q6 0 6 8v8q0 6-6 6H50q-6 0-6-6z"/><path d="M122 168h34q6 0 6 8v8q0 6-6 6h-28q-6 0-6-6z"/></g>
+  <path d="M54 190v-8M62 190v-8M70 190v-8M130 190v-8M138 190v-8M146 190v-8" stroke="#2e1a0c" stroke-width="1.4" opacity=".55"/>
+  <path d="M38 88C36 54 62 34 100 34C138 34 164 54 162 88C162 116 140 134 100 136C60 134 38 116 38 88Z" fill="url(#${id}h)"/>
+  <path d="M60 44C76 36 124 36 140 44C132 52 68 52 60 44Z" fill="#573620" opacity=".5"/>
+  <path d="M60 96C60 82 78 77 100 77C122 77 140 82 140 96L142 114C142 128 124 138 100 138C76 138 58 128 58 114Z" fill="url(#${id}m)"/>
+  <ellipse cx="100" cy="86" rx="30" ry="12" fill="#35200f"/>
+  <ellipse cx="92" cy="82" rx="14" ry="3.4" fill="#fff" opacity=".13"/>
+  <ellipse cx="88" cy="88" rx="5.5" ry="3.6" fill="#0c0603" transform="rotate(-14 88 88)"/>
+  <ellipse cx="112" cy="88" rx="5.5" ry="3.6" fill="#0c0603" transform="rotate(14 112 88)"/>
+  <path d="M100 98V111M84 115Q100 125 116 115" stroke="#4d2f19" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <g fill="#4d2f19" opacity=".6"><circle cx="76" cy="104" r="1.3"/><circle cx="70" cy="110" r="1.3"/><circle cx="78" cy="112" r="1.3"/><circle cx="124" cy="104" r="1.3"/><circle cx="130" cy="110" r="1.3"/><circle cx="122" cy="112" r="1.3"/></g>
+  <ellipse cx="66" cy="68" rx="9" ry="6.5" fill="#4d2f19" opacity=".35"/><ellipse cx="134" cy="68" rx="9" ry="6.5" fill="#4d2f19" opacity=".35"/>
+  <circle cx="66" cy="68" r="5" fill="#140a04"/><circle cx="134" cy="68" r="5" fill="#140a04"/>
+  <circle cx="67.6" cy="66.2" r="1.7" fill="#fff"/><circle cx="135.6" cy="66.2" r="1.7" fill="#fff"/>
+  <ellipse cx="50" cy="46" rx="12" ry="10" fill="#573620"/><ellipse cx="50" cy="47" rx="6" ry="5" fill="#c79a6c" opacity=".75"/>
+  <ellipse cx="150" cy="46" rx="12" ry="10" fill="#573620"/><ellipse cx="150" cy="47" rx="6" ry="5" fill="#c79a6c" opacity=".75"/>
+  ${point ? '<g class="cpaw"><path d="M18 128c-6-12-3-26 7-30c8-3 14 4 13 12c-1 8-6 18-10 26c-3 6-8 4-10-8z" fill="#7a4d2b"/><path d="M20 102v-6M26 99v-6M32 100v-6" stroke="#2e1a0c" stroke-width="3" stroke-linecap="round"/></g>' : ''}
 </svg>`;
+};
 
 // whole-body capybara that wanders along the bottom of the finale (side view, facing right)
 const CAPY_COL = {
