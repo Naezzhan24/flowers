@@ -13,9 +13,9 @@ const CONFIG = {
     name: 'CDC, Clark',
     // IMPORTANT: ilagay ang eksaktong pin ng tambayan. Google Maps: long-press sa lugar > lalabas ang "15.xxxxx, 120.xxxxx".
     // O buksan ang  index.html?where  habang nandoon ka mismo para makita ang lat/lng. Habang null, HINDI mag-a-unlock (ligtas).
-    lat: null,
-    lng: null,
-    radius: 100, // metro. 75-150 ang maganda sa labas; mas malaki kung sa loob ng building (mahina ang GPS)
+    lat: 15.1784523,
+    lng: 120.518364,
+    radius: 200, // metro. "Malapit na" = 200 m. Palakihin kung gusto mong mas maaga (hal. 300), liitan kung gusto mong mas eksakto (hal. 100)
   },
   // Optional na oras: 'YYYY-MM-DDTHH:MM:00' (oras ng phone niya), hal. '2026-10-11T19:00:00'. Iwanang '' kung location lang.
   unlockAt: '',
