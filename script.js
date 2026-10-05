@@ -1144,43 +1144,66 @@ function maybeReveal() {
 setInterval(maybeReveal, 3000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) maybeReveal(); });
 
+const REVEAL_DEFAULT = {
+  questions: [
+    { q: 'Are you at CDC Clark right now?', yes: 'Yes', no: 'No', noReply: 'Take your time ✿ I’ll wait for you.', retry: true },
+    { q: 'Are you happy right now?', yes: 'Yes', no: 'No', noReply: 'That’s okay. Thank you for being honest ❤' },
+    { q: 'Are you enjoying being with Jerome?', yes: 'Yes', no: 'No', noReply: 'Then I’ll keep trying to make it better ❤' },
+  ],
+  finale: 'Then this one is for you ✿',
+};
+
 function playReveal(F) {
-  const R = CONFIG.reveal || {};
-  const lines = R.lines && R.lines.length ? R.lines : [`${CONFIG.to},`, 'nandito ka na.', 'May isa pang bulaklak na naghihintay sa iyo ✿'];
-  const glow = F.theme.glow;
+  const R = Object.assign({}, REVEAL_DEFAULT, CONFIG.reveal || {});
+  const qs = R.questions && R.questions.length ? R.questions : REVEAL_DEFAULT.questions;
+  const glow = F.theme.glow, cols = [glow, '#fff', ...F.theme.rain];
   const el = document.createElement('div');
   el.className = 'reveal';
   el.style.setProperty('--rg', glow);
-  el.innerHTML = `<div class="rv-halo"></div><div class="rv-lines">${lines.map((l, i) => `<p style="--i:${i}">${l}</p>`).join('')}</div>
-    <button class="rv-btn" style="--d:${lines.length * 1.5 + 1}s"><span class="rv-bud"><svg viewBox="-44 -44 88 88">${Flowers.bloom('peony', 34, Flowers.PAL.peony, 77, .6)}</svg></span><span>${R.button || 'Hawakan mo ✿'}</span></button>
-    <div class="rv-flash"></div>`;
+  el.innerHTML = `<div class="rv-halo"></div><div class="rv-flash"></div><div class="rv-pop" role="dialog" aria-live="polite"></div>`;
   document.body.appendChild(el);
-  // the ring-and-bell sequence needs a touch (browsers keep sound locked until then), so she taps the glowing button
   requestAnimationFrame(() => el.classList.add('on'));
-  const btn = el.querySelector('.rv-btn');
-  let started = false;
-  const go = () => {
-    if (started) return;
-    started = true;
-    sfxInit();
-    try { navigator.vibrate && navigator.vibrate([160, 80, 160, 80, 360]); } catch (e) { /* not supported */ }
-    el.classList.add('go');
-    const w = innerWidth, h = innerHeight, cols = [glow, '#fff', ...F.theme.rain];
-    const at = (ms, fn) => setTimeout(fn, ms);
-    stopMusic();
-    chime(0); ripple(w / 2, h / 2, glow);
-    at(450, () => { chime(3); ripple(w / 2, h / 2, '#fff'); });
-    at(900, () => { chime(5, true); burst(w / 2, h / 2, cols); if (window.TouchBloom) TouchBloom.shower(7000, 40); });
-    at(1500, () => { ripple(w / 2, h / 2, glow); burst(w * .3, h * .45, cols); burst(w * .7, h * .45, cols); });
-    at(1900, () => el.classList.add('flash'));
-    at(3300, () => {
+  const pop = el.querySelector('.rv-pop');
+  const bud = `<svg viewBox="-44 -44 88 88">${Flowers.bloom('peony', 34, Flowers.PAL.peony, 77, .6)}</svg>`;
+  const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const at = (ms, fn) => setTimeout(fn, ms);
+
+  // a SweetAlert-style popup card: swap its content, pop it in
+  const card = (html) => {
+    pop.classList.remove('in');
+    at(220, () => { pop.innerHTML = `<div class="rv-bud">${bud}</div>${html}`; void pop.offsetWidth; pop.classList.add('in'); });
+  };
+
+  const ask = (i) => {
+    if (i >= qs.length) return finale();
+    const q = qs[i];
+    card(`<h3>${esc(q.q)}</h3><div class="rv-acts"><button class="rv-yes">${esc(q.yes || 'Yes')}</button><button class="rv-no">${esc(q.no || 'No')}</button></div>`);
+    at(260, () => {
+      const touch = () => { sfxInit(); try { navigator.vibrate && navigator.vibrate(25); } catch (e) { /* not supported */ } };
+      pop.querySelector('.rv-yes').onclick = () => { touch(); chime(i); ask(i + 1); };
+      pop.querySelector('.rv-no').onclick = () => {
+        touch();
+        card(`<h3>${esc(q.noReply || 'That’s okay ✿')}</h3>`);
+        at(2600, () => ask(q.retry ? i : i + 1)); // an honest "no" is fine: it gets a kind reply and the surprise carries on
+      };
+    });
+  };
+
+  const finale = () => {
+    card(`<h3>${esc(R.finale || '')}</h3>`);
+    chime(0);
+    at(1400, () => { chime(3); ripple(innerWidth / 2, innerHeight / 2, glow); });
+    at(2100, () => { chime(5, true); burst(innerWidth / 2, innerHeight / 2, cols); if (window.TouchBloom) TouchBloom.shower(7000, 40); });
+    at(2900, () => { pop.classList.remove('in'); el.classList.add('flash'); });
+    at(4000, () => {
       progress.revealed = true; store.set('revealed', true);
-      route = 'f'; render(); // the secret bouquet assembles itself behind the fading light
+      route = 'f'; render(); // the flowers pop in from both sides and make the bouquet, behind the fading light
       el.classList.add('out');
     });
-    at(5600, () => { el.remove(); reveal.running = false; });
+    at(6400, () => { el.remove(); reveal.running = false; });
   };
-  btn.addEventListener('click', go);
+
+  ask(0);
 }
 
 /* ---------------- HOME ---------------- */

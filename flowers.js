@@ -217,7 +217,7 @@
       const hit = n2(f.s * (tul ? 1.1 : .95));
       const hy = tul ? n2(-f.s * .6) : 0;
       const fl = `<g class="fl" data-f="${i}" role="button" tabindex="0" aria-label="Open pictures of flower ${i + 1}" transform="translate(${f.x} ${f.y})"><circle cx="0" cy="${hy}" r="${hit}" fill="transparent"/><g transform="rotate(${rot})">${bloom(kind, f.s, PAL[f.p], b.seed + i * 7 + 3, base)}</g></g>`;
-      if (asm) drops += `<g class="drop" style="--dd:${dd}s;--ox:${n2(dx * .5)}px;--r0:${dx === 0 ? 0 : dx < 0 ? -26 : 26}deg">${stem}${fl}</g>`;
+      if (asm) drops += `<g class="drop" style="--dd:${dd}s;--sx:${dx === 0 ? (i % 2 ? 1 : -1) : dx < 0 ? -1 : 1};--sy:${(i % 3 - 1) * 70}px">${stem}${fl}</g>`;
       else { stems += stem; flowers += fl; }
     });
 

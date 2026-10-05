@@ -19,11 +19,15 @@ const CONFIG = {
   },
   // Optional na oras: 'YYYY-MM-DDTHH:MM:00' (oras ng phone niya), hal. '2026-10-11T19:00:00'. Iwanang '' kung location lang.
   unlockAt: '',
-  // CINEMATIC REVEAL: ito ang lalabas sa screen niya pagdating sa tambayan (bago bumukas ang Thumbelina). I-edit ang mga linya!
-  // Bawat item = isang linya na isa-isang lilitaw. Pagkatapos, may button na kailangan niyang hawakan (kailangan ito para lumabas ang tunog).
+  // REVEAL: pag nadetect na nasa tambayan na siya, lalabas ang mga tanong (Yes/No) isa-isa, tapos susulpot ang mga bulaklak ng Thumbelina.
+  // I-edit/dagdagan/bawasan ang mga tanong. noReply = lalabas kung "No" ang pinindot niya. retry:true = uulitin ang tanong pagkatapos ng noReply.
   reveal: {
-    lines: ['Anne,', 'nandito ka na.', 'May isa pang bulaklak na naghihintay sa iyo ✿'],
-    button: 'Hawakan mo ✿',
+    questions: [
+      { q: 'Are you at CDC Clark right now?', yes: 'Yes', no: 'No', noReply: 'Take your time ✿ I’ll wait for you.', retry: true },
+      { q: 'Are you happy right now?', yes: 'Yes', no: 'No', noReply: 'That’s okay. Thank you for being honest ❤' },
+      { q: 'Are you enjoying being with Jerome?', yes: 'Yes', no: 'No', noReply: 'Then I’ll keep trying to make it better ❤' },
+    ],
+    finale: 'Then this one is for you ✿', // lalabas pagkatapos ng huling sagot, bago sumulpot ang mga bulaklak
   },
 }
 
