@@ -41,14 +41,15 @@ function stopMusic() {
   });
 }
 
-function playMusic(id) {
+function playMusic(id, fallback) {
   if (music.id === id) return;
   stopMusic();
   music.id = id;
   const my = music.token;
   let n = 0;
   const tryNext = () => {
-    if (my !== music.token || n >= MUSIC_EXT.length) return;
+    if (my !== music.token) return;
+    if (n >= MUSIC_EXT.length) { if (fallback && fallback !== id) { music.id = null; playMusic(fallback); } return; } // no file for this id: use the fallback song
     const a = new Audio(`music/${id}.${MUSIC_EXT[n++]}`);
     a.loop = true; a.volume = 0; a.muted = music.muted;
     music.all.add(a);
@@ -865,7 +866,7 @@ function skyHTML() {
   // Aries: 41 Ari, Hamal, Sheratan, Mesarthim (drawn a little larger so it reads from the floor)
   const P = [[330, 400, 4], [470, 455, 7.5], [560, 500, 6], [600, 545, 5]];
   const line = P.map((p, i) => `${i ? 'L' : 'M'}${p[0]} ${p[1]}`).join('');
-  const big = P.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r * 3.2}" class="sk-halo"/><circle cx="${x}" cy="${y}" r="${r}" class="sk-star"/>`).join('');
+  const big = P.map(([x, y, r], i) => `<g class="sk-pt" style="--i:${i}"><circle cx="${x}" cy="${y}" r="${r * 3.2}" class="sk-halo"/><circle cx="${x}" cy="${y}" r="${r}" class="sk-star"/></g>`).join('');
   const date = CONFIG.skyDate ? `<text x="500" y="706" class="sk-date">${CONFIG.skyDate}</text>` : '';
   return `<svg class="sky" viewBox="0 0 1000 1000" aria-hidden="true">
     <defs><radialGradient id="skyg" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#2a1740"/><stop offset=".55" stop-color="#150c26"/><stop offset="1" stop-color="#07040f"/></radialGradient></defs>
@@ -873,7 +874,7 @@ function skyHTML() {
     ${stars}
     <g transform="translate(500 500) scale(.48) translate(-500 -500)"><!-- smaller, so the whole drawing fits on screen when she looks straight up -->
       <circle cx="470" cy="470" r="250" class="sk-ring"/>
-      <path d="${line}" class="sk-line"/>
+      <path d="${line}" class="sk-line" pathLength="1"/>
       ${big}
       <text x="500" y="318" class="sk-glyph">♈</text>
       <text x="500" y="650" class="sk-name">Aries</text>
@@ -909,6 +910,10 @@ function showMuseum() {
   let dust = '';
   for (let i = 0; i < 44; i++) {
     dust += `<b style="left:${rand(4, 96).toFixed(1)}%;top:${rand(10, 72).toFixed(1)}%;--s:${rand(1.5, 3.2).toFixed(1)}px;--dx:${rand(-30, 30).toFixed(0)}px;--dur:${rand(14, 30).toFixed(0)}s;--dl:${rand(-30, 0).toFixed(0)}s"></b>`;
+  }
+
+  for (let i = 0; i < 9; i++) {
+    dust += `<b class="ff" style="left:${rand(6, 94).toFixed(1)}%;top:${rand(25, 80).toFixed(1)}%;--s:${rand(3, 5).toFixed(1)}px;--dx:${rand(-70, 70).toFixed(0)}px;--dur:${rand(7, 13).toFixed(0)}s;--dl:${rand(-12, 0).toFixed(0)}s"></b>`;
   }
 
   app.innerHTML = `<section class="mus">
@@ -1002,8 +1007,62 @@ function showMuseum() {
 
   // turning your head: drag / swipe / wheel / arrow keys, with a little momentum
   let drag = null, last = performance.now(), raf = 0;
+  /* the sky: the Aries lines draw themselves once she looks up, and now and then a shooting star crosses the screen (tap it to wish) */
+  let skyDrawn = false, skyT = 0, nextStar = 3500;
+  const mp = app.querySelector('.mus');
+  const poke = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) { /* not supported */ } };
+  const toast = (text, big) => {
+    mp.querySelectorAll('.mtoast').forEach((n) => n.remove());
+    const t = document.createElement('p');
+    t.className = 'mtoast' + (big ? ' big' : '');
+    t.textContent = text;
+    mp.appendChild(t);
+    setTimeout(() => t.classList.add('out'), 2400);
+    setTimeout(() => t.remove(), 3600);
+  };
+  const wish = (x, y) => {
+    sfxInit(); chime(4); setTimeout(() => chime(2), 220);
+    burst(x, y, ['#fff3d6', '#ffd1e0', '#ffe9a8', '#fff']);
+    poke(35);
+    toast(CONFIG.wish || 'Make a wish ✦', true);
+  };
+  const shootingStar = () => {
+    const el = document.createElement('button');
+    el.className = 'shoot';
+    el.setAttribute('aria-label', 'Shooting star: make a wish');
+    const sx = rand(-.05, .25) * innerWidth, sy = rand(.08, .26) * innerHeight;
+    const ex = sx + innerWidth * rand(.75, .95), ey = sy + innerHeight * rand(.28, .4);
+    el.style.setProperty('--ang', (Math.atan2(ey - sy, ex - sx) * 180 / Math.PI).toFixed(1) + 'deg');
+    mp.appendChild(el);
+    const an = el.animate([
+      { transform: `translate(${sx}px, ${sy}px)`, opacity: 0 },
+      { opacity: 1, offset: .12 }, { opacity: 1, offset: .8 },
+      { transform: `translate(${ex}px, ${ey}px)`, opacity: 0 },
+    ], { duration: 3400, easing: 'linear' });
+    an.finished.then(() => el.remove()).catch(() => { /* cancelled by a tap */ });
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const r = el.getBoundingClientRect();
+      an.cancel(); el.remove();
+      wish(r.left + r.width / 2, r.top + r.height / 2);
+    });
+  };
+  // the two figures in the room: a small secret, one line per tap
+  let eggN = 0;
+  app.querySelectorAll('.viewers, .sitter').forEach((fig) => fig.addEventListener('click', () => {
+    if (mus.dragged) return;
+    const lines = CONFIG.easter && CONFIG.easter.length ? CONFIG.easter : ['✿'];
+    toast(lines[eggN++ % lines.length]);
+    poke(20);
+  }));
+
   const loop = (now) => {
     const dt = Math.min(48, now - last); last = now;
+    if (view.pitch > 24) {
+      if (!skyDrawn) { skyDrawn = true; document.getElementById('ceil3').classList.add('drawn'); }
+      skyT += dt;
+      if (skyT > nextStar) { nextStar = skyT + rand(6500, 11000); shootingStar(); }
+    }
     if (view.anim) {
       const p = Math.min(1, (now - view.anim.t0) / view.anim.ms);
       view.yaw = view.anim.from + view.anim.d * ease(p);
@@ -1348,7 +1407,7 @@ function showBouquet(i) {
   markSeen(b);
   setTheme(b.theme);
   rain(b.theme.rain, 24);
-  playMusic(b.music || b.id);
+  playMusic(b.music || b.id, b.musicFallback);
 
   const { svg, duration, lands } = Flowers.buildBouquet(b);
   const words = (l) => l.split(' ').map((w) => `<span class="w">${[...w].map((c) => `<span class="c">${c}</span>`).join('')}</span>`).join(' ');
@@ -1376,6 +1435,7 @@ function showBouquet(i) {
         <p class="sig" id="sig">${CONFIG.from}</p>
         <div class="actions">
           <button class="ghost" id="replay">↻ Replay</button>
+          ${b.lock ? '<button class="ghost" id="reply">Reply to Jerome ❤</button>' : ''}
           <button class="ghost" id="next2">${waiting ? 'Something new is waiting ✿' : last ? 'Back to the start ✿' : 'Next bouquet →'}</button>
         </div>
       </article>
@@ -1389,6 +1449,35 @@ function showBouquet(i) {
   document.getElementById('next2').onclick = (e) => go(i + 1, e);
   document.getElementById('mute').onclick = (e) => toggleMute(e.currentTarget);
   document.getElementById('replay').onclick = () => { music.id = null; render(); };
+  const replyBtn = document.getElementById('reply');
+  if (replyBtn) replyBtn.onclick = async () => {
+    const R = CONFIG.reply || {}, text = R.text || 'I loved it ❤';
+    if (R.sms) { location.href = `sms:${R.sms}?body=${encodeURIComponent(text)}`; return; }
+    try {
+      if (navigator.share) { await navigator.share({ text }); return; }
+      await navigator.clipboard.writeText(text);
+      replyBtn.textContent = 'Copied ✿ paste it to Jerome';
+    } catch (e) { /* she closed the share sheet */ }
+  };
+
+  // the very last moment of the secret bouquet: a quiet pause, then "Now look up", with a heartbeat in her hand
+  let lookDone = false;
+  const lookUp = () => {
+    if (lookDone || !b.assemble) return;
+    lookDone = true;
+    const sec = app.querySelector('.bq');
+    if (!sec) return;
+    if (window.TouchBloom) TouchBloom.stopShower();
+    const o = document.createElement('div');
+    o.className = 'lookup';
+    const t = document.createElement('p');
+    t.textContent = CONFIG.finalLine || 'Now look up ✿';
+    o.appendChild(t);
+    sec.appendChild(o);
+    requestAnimationFrame(() => o.classList.add('on'));
+    try { navigator.vibrate && navigator.vibrate([90, 120, 90, 700, 90, 120, 90, 700, 90, 120, 90]); } catch (e) { /* not supported */ }
+    o.onclick = () => { o.classList.remove('on'); setTimeout(() => o.remove(), 1400); };
+  };
   const colors = [b.theme.glow, '#fff', ...b.theme.rain];
   document.getElementById('bwrap').onclick = (e) => {
     const fl = e.target.closest('.fl');
@@ -1423,14 +1512,14 @@ function showBouquet(i) {
   const sig = document.getElementById('sig');
   let k = 0;
   const tick = () => {
-    if (k >= chars.length) { sig.classList.add('on'); return; }
+    if (k >= chars.length) { sig.classList.add('on'); mus.timers.push(setTimeout(lookUp, 3200)); return; }
     const c = chars[k++];
     c.classList.add('on');
     const t = c.textContent;
     typeTimer = setTimeout(tick, /[.,?!:]/.test(t) ? 260 : 36);
   };
   typeTimer = setTimeout(tick, Math.max(2500, duration * 800));
-  document.getElementById('text').onclick = () => { clearTimeout(typeTimer); chars.forEach((c) => c.classList.add('on')); sig.classList.add('on'); };
+  document.getElementById('text').onclick = () => { clearTimeout(typeTimer); chars.forEach((c) => c.classList.add('on')); sig.classList.add('on'); mus.timers.push(setTimeout(lookUp, 3200)); };
 }
 
 /* keyboard */
@@ -1450,3 +1539,16 @@ window.addEventListener('keydown', (e) => {
 });
 
 render();
+
+/* ---------------- offline: keep the pages and pictures on the phone so weak signal doesn't matter ---------------- */
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then((reg) => {
+    const full = [];
+    BOUQUETS.forEach((b) => b.flowers.forEach((f) => (f.photos || []).forEach((p) => { if (p && p.src && !/\.[a-z0-9]{2,4}$/i.test(p.src)) full.push(p.src + '.jpg'); })));
+    MUSEUM.frames.forEach((f) => { if (!/\.[a-z0-9]{2,4}$/i.test(f.src) && !full.includes(f.src + '.jpg')) full.push(f.src + '.jpg'); });
+    const uniq = [...new Set(full)];
+    const thumbs = uniq.map((u) => u.replace(/^photos\//, 'photos/thumbs/'));
+    const send = () => reg.active && reg.active.postMessage({ cache: [...thumbs, ...uniq] });
+    (window.requestIdleCallback || ((fn) => setTimeout(fn, 3000)))(send);
+  }).catch(() => { /* no service worker: the site still works online */ });
+}

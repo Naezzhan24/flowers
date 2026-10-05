@@ -8,6 +8,15 @@ const CONFIG = {
   since: '',
   // Nasa kisame ng museum (night sky + Aries). Palitan kung kailangan; iwanang '' para walang petsa.
   skyDate: '04-18-2006',
+  // Huling linya pagkabuo ng Thumbelina (lalabas sa gitna ng screen, may heartbeat vibration). Dito siya tataas ng tingin sa iyo.
+  finalLine: 'Now look up ✿',
+  // Lalabas kapag tinap niya ang shooting star sa kisame ng museum
+  wish: 'Make a wish ✦',
+  // Lalabas isa-isa kapag tinap niya ang dalawang tao sa museum (ikaw/kayo) - palitan ng sarili mong biro
+  easter: ['Is that us? ✿', 'Still holding hands ❤', 'I’d walk through any museum with you.'],
+  // "Reply to Jerome" na button sa huling bouquet. sms: ilagay ang number mo (hal. '+639171234567') para diretso sa text mo.
+  // Kung '' ang sms, magbubukas ang share sheet ng phone niya (Messenger, SMS, etc.).
+  reply: { text: 'I loved it, thank you Jerome ❤', sms: '' },
   // SURPRISE: ang secret bouquet (Thumbelina) ay TAGO hanggang (1) nabuksan na niya ang limang bouquet AT
   // (2) nasa tambayan na siya (place) AT (3) dumating ang oras (unlockAt, kung may nilagay).
   // Para i-test: buksan ang index.html?preview (lalaktaw sa lugar at oras).
@@ -154,6 +163,19 @@ const BOUQUETS = [
       { p: 'roseRed', x: 200, y: 250, s: 50 },
       { p: 'roseRed', x: 270, y: 262, s: 48 },
     ],
+    // short message kada picture: captions[0] = c1, captions[1] = c2, ... (i-edit mo ang gusto mong palitan!)
+    captions: [
+      'Kahit selfie lang, ikaw pa rin ang pinakamagandang makita ko.',
+      'Naghihintay ka lang, pero ang cute mo pa rin.',
+      'Kahit saan tayo kumain, basta kasama ka, masarap.',
+      'Isa ito sa mga picture na paulit-ulit kong binabalikan.',
+      'Bagay na bagay sa’yo ang mga bulaklak.',
+      'Kahit simpleng lakad lang, parang runway mo na.',
+      'Movie date natin, pero minsan ikaw ang mas gusto kong tingnan.',
+      'Ang cute ng ngiti mo. Sana makita ko ito araw-araw.',
+      'Kahit saan tayo mapunta, ikaw ang paborito kong tanawin.',
+      'Maganda ang view, pero mas gusto kong sabay nating tingnan.',
+    ],
     message: [
       'It’s a cliché, but it’s true: no other flower says “only you” as clearly as a rose.',
       'Every petal is a reason why I fell for you.',
@@ -188,6 +210,16 @@ const BOUQUETS = [
       { p: 'tulipPink', x: 312, y: 226, s: 40 },
       { p: 'tulipYellow', x: 165, y: 244, s: 42 },
       { p: 'tulipPink', x: 235, y: 244, s: 42 },
+    ],
+    // short message kada picture: captions[0] = d1, captions[1] = d2, ... (i-edit mo ang gusto mong palitan!)
+    captions: [
+      'Sana ako ang iniisip mo ngayon.',
+      'Maganda ang langit, pero ikaw ang tinitigan ko.',
+      'Sa tahimik na sandali, ikaw ang pahinga ko.',
+      'Parang eksena sa pelikula, at ikaw ang bida.',
+      'Basta kasama ka, kahit saan masaya.',
+      'Simpleng upo lang, pero ang gaan ng pakiramdam kapag kasama ka.',
+      'Helmet at lahat, ang cute mo pa rin.',
     ],
     message: [
       'Tulips, they say, mean perfect love.',
@@ -252,7 +284,9 @@ const BOUQUETS = [
     sub: 'The Last Flower',
     lock: true,
     assemble: true,
-    music: 'e',
+    // KANTA SA PAGBUO: ilagay ang paborito ninyong kanta sa  music/f.mp3  (mp3/m4a/ogg/wav). Habang wala pa, ang e.mp3 ang tutugtog.
+    music: 'f',
+    musicFallback: 'e',
     kind: 'peony',
     seed: 67,
     theme: {
