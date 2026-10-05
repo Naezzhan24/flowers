@@ -1175,7 +1175,8 @@ const metersBetween = (a, b, c, d) => { // haversine
 };
 const placeReached = () => !CONFIG.place || previewMode || (!!PLACE && geo.there); // place set but no coordinates yet = stay hidden
 const surpriseReady = () => timeReached() && placeReached();
-const isOpen = (b) => !b.lock || (allSeen() && surpriseReady() && progress.revealed);
+// once the reveal has played ('revealed' is saved on her phone) the secret bouquet stays open for good, wherever she is
+const isOpen = (b) => !b.lock || (allSeen() && progress.revealed);
 
 const whereBox = /[?&]where\b/.test(location.search) ? Object.assign(document.createElement('pre'), { id: 'whereBox' }) : null;
 if (whereBox) {
