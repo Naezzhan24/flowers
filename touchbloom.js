@@ -80,18 +80,25 @@
 
   // ulan ng petals sa buong screen (para sa cinematic reveal). ms = gaano katagal, perSec = dami kada segundo
   let showerTimer = 0
-  function shower(ms = 6000, perSec = 38) {
+  function shower(ms = 6000, perSec = 38, gentle = false) {
     clearInterval(showerTimer)
     const t0 = performance.now()
     showerTimer = setInterval(() => {
       if (performance.now() - t0 > ms) { clearInterval(showerTimer); return }
-      const n = Math.max(1, Math.round(perSec / 12))
-      for (let i = 0; i < n && petals.length < CFG.maxPetals + 120; i++)
-        petals.push(makePetal(rand(-20, W + 20), rand(-40, -10), rand(-25, 25), rand(60, 120), rand(9, 13)))
-      wake()
+      const want = perSec * 0.08 // petals expected per 80 ms tick (can be a fraction)
+      const n = Math.floor(want) + (Math.random() < want % 1 ? 1 : 0)
+      for (let i = 0; i < n && petals.length < CFG.maxPetals + 120; i++) {
+        const p = gentle
+          ? makePetal(rand(0, W), rand(-40, -10), rand(-12, 12), rand(25, 55), rand(14, 20))
+          : makePetal(rand(-20, W + 20), rand(-40, -10), rand(-25, 25), rand(60, 120), rand(9, 13))
+        if (gentle) { p.size *= 0.8; p.vrot *= 0.5 }
+        petals.push(p)
+      }
+      if (n) wake()
     }, 80)
   }
-  window.TouchBloom = { shower, burst }
+  const stopShower = () => clearInterval(showerTimer)
+  window.TouchBloom = { shower, burst, stopShower }
 
   function drawPetal(p, alpha) {
     const s = p.size

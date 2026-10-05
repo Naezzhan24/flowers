@@ -1163,8 +1163,9 @@ function playReveal(F) {
   el.innerHTML = `<div class="rv-halo"></div><div class="rv-flash"></div><div class="rv-pop" role="dialog" aria-live="polite"></div>`;
   document.body.appendChild(el);
   requestAnimationFrame(() => el.classList.add('on'));
+  if (window.TouchBloom) TouchBloom.shower(180000, 3.5, true); // a few petals drifting slowly while she answers
   const pop = el.querySelector('.rv-pop');
-  const bud = `<svg viewBox="-44 -44 88 88">${Flowers.bloom('peony', 34, Flowers.PAL.peony, 77, .6)}</svg>`;
+  const bud = `<svg viewBox="-44 -44 88 88">${Flowers.bloom('peony', 34, Flowers.PAL.peony, 77, .05)}</svg>`;
   const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   const at = (ms, fn) => setTimeout(fn, ms);
 
@@ -1190,6 +1191,7 @@ function playReveal(F) {
   };
 
   const finale = () => {
+    if (window.TouchBloom) TouchBloom.stopShower();
     card(`<h3>${esc(R.finale || '')}</h3>`);
     chime(0);
     at(1400, () => { chime(3); ripple(innerWidth / 2, innerHeight / 2, glow); });
