@@ -11,7 +11,7 @@
     petalsOnTap: 9,     // ilang petals kada tap
     petalsOnDrag: 3,    // ilang petals kada "hakbang" ng pag-drag
     dragStep: 38,       // layo (px) bago maglabas ulit habang nag-drag
-    maxPetals: 200,     // limit para hindi bumagal sa phone
+    maxPetals: (navigator.hardwareConcurrency || 8) <= 4 ? 110 : 160, // limit para hindi bumagal sa phone
     gravity: 90,        // bilis ng pagbagsak
     petalColors: ['#ffc2d1', '#ff9ec4', '#fff3e0', '#f7a8c4', '#ffffff'],
   }
@@ -32,7 +32,7 @@
   const rand = (a, b) => a + Math.random() * (b - a)
 
   function resize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2)
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5)
     W = window.innerWidth
     H = window.innerHeight
     canvas.width = W * dpr
@@ -108,8 +108,6 @@
     ctx.scale(1, 0.55 + 0.45 * Math.abs(Math.sin(p.sway))) // parang umiikot sa hangin
     ctx.globalAlpha = alpha
     ctx.fillStyle = p.color
-    ctx.shadowColor = 'rgba(0,0,0,.25)'
-    ctx.shadowBlur = 3
     ctx.beginPath()
     ctx.moveTo(0, -s)
     ctx.bezierCurveTo(s * 0.9, -s * 0.5, s * 0.7, s * 0.7, 0, s)

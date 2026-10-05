@@ -612,7 +612,7 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .rv-pop.in { opacity: 1; transform: none; }
 .rv-bud svg { width: 74px; height: 74px; display: block; margin: 0 auto 4px; filter: drop-shadow(0 0 14px var(--rg, #ffd9a0)); animation: rvpulse 3s ease-in-out infinite; }
 @keyframes rvpulse { 50% { transform: scale(1.07); } }
-.rv-pop h3 { margin: 2px 0 20px; font-family: var(--script); font-weight: 400; font-size: 2.05rem; line-height: 1.2; color: #fff1f6; text-shadow: 0 0 20px rgba(255,170,205,.35); }
+.rv-pop h3 { margin: 2px 0 20px; font-family: var(--ui); font-weight: 700; font-size: 1.4rem; line-height: 1.35; letter-spacing: .005em; color: #fff1f6; }
 .rv-pop h3:last-child { margin-bottom: 6px; }
 .rv-acts { display: flex; gap: 12px; justify-content: center; }
 .rv-acts button { min-width: 104px; padding: 11px 22px; border-radius: 999px; font-family: var(--ui); font-weight: 600; font-size: .98rem; letter-spacing: .06em; transition: transform .2s, box-shadow .2s; }
@@ -700,9 +700,47 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 @keyframes camflash { from { opacity: 1; } to { opacity: 0; } }
 .cam-review { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 18px; background: radial-gradient(120% 90% at 50% 50%, #1d1030, #05020a 72%); }
 .cam-review img { max-width: 100%; max-height: 72dvh; border-radius: 6px; box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 50px rgba(255,170,205,.25); transform: rotate(-1.2deg); }
-.cam-saved { margin: 0; font-family: var(--script); font-size: 1.7rem; color: #fff1f6; text-align: center; }
+.cam-saved { margin: 0; font-family: var(--ui); font-weight: 600; font-size: 1.15rem; color: #fff1f6; text-align: center; }
 .cam-acts { display: flex; gap: 12px; }
 .cam-acts button { min-width: 120px; padding: 12px 22px; border-radius: 999px; font-weight: 600; letter-spacing: .05em; }
 .cam-msg { text-align: center; padding: 24px; color: #fff1f6; }
-.cam-msg p { font-family: var(--script); font-size: 2rem; margin: 0 0 18px; }
+.cam-msg p { font-family: var(--ui); font-weight: 600; font-size: 1.25rem; margin: 0 0 18px; }
 .cam-msg .rv-yes { padding: 11px 30px; border-radius: 999px; font-weight: 600; }
+
+/* =====================================================================
+   PHONE PERFORMANCE: blur filters, backdrop blur, animated drop-shadows and many animated SVG nodes are cheap on a PC
+   but make phones lag, because each frame has to be repainted. On touch screens / small screens we swap them for flat
+   gradients that look almost the same. (Nothing here changes how it works, only how it is painted.)
+   ===================================================================== */
+@media (pointer: coarse), (max-width: 700px) {
+  /* the two big drifting glows behind everything: gradient instead of a 90px blur */
+  body::before, body::after { filter: none; opacity: .2; background: radial-gradient(circle, var(--glow) 0, transparent 66%); will-change: transform; }
+  .halo { filter: none; }
+  .rv-halo { filter: none; }
+  .bq-svg { filter: none; }
+  .title, .hm-title { filter: none; animation: none; }
+  /* backdrop blur makes the browser re-blur everything behind it every frame */
+  .ghost, .hm-back, .lb, .fin, .vase-hint, .mus-mute, .to-vase, .back-gal { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .lb { background: rgba(10,4,14,.86); }
+  .fin { background: radial-gradient(90% 70% at 50% 40%, rgba(120,40,90,.92), rgba(22,6,22,.97)); }
+  /* animated or large drop-shadows */
+  .vase-btn { animation: none; filter: none; }
+  .fly, .petal-fall, .capy-body, .book, .fin-flower, .lb-flower { filter: none; }
+  /* the question cards: a static glow instead of an animated filter */
+  .rv-bud svg { filter: none; animation: none; }
+  .rv-bud { position: relative; }
+  .rv-bud::before { content: ''; position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--rg, #ffd9a0) 55%, transparent), transparent 70%); }
+  .rv-bud svg { position: relative; }
+  /* night sky: static (190 twinkling circles on a big 3D ceiling repaint it every frame) and no glow filters */
+  .sk-s { animation: none; opacity: .85; }
+  .sk-line, .sk-star, .sk-glyph, .sk-name { filter: none; }
+  .shoot::before, .shoot::after { filter: none; }
+  .mtoast { text-shadow: none; }
+  .dust b.ff { box-shadow: 0 0 8px 2px rgba(255,214,120,.5); }
+}
+
+/* phones: skip the grain texture on every wall (it is a noise filter repainted as an image) */
+@media (pointer: coarse), (max-width: 700px) {
+  .wp { background: linear-gradient(#2c2229, #221a22 70%, #1c141c); }
+  .wp[data-k="0"] { background: radial-gradient(60% 70% at 50% 62%, rgba(255,226,170,.13), transparent 70%), linear-gradient(#2c2229, #221a22 70%, #1c141c); }
+}

@@ -5,6 +5,7 @@ const root = document.documentElement;
 
 const HOME_THEME = { bg1: '#140a14', bg2: '#33193a', glow: '#e8c98f', rain: ['#f3c7d4', '#e8c98f', '#fff3e0', '#d9a8c0'] };
 const rand = (a, b) => a + Math.random() * (b - a);
+const LITE = matchMedia('(pointer: coarse)').matches || innerWidth < 700 || (navigator.hardwareConcurrency || 8) <= 4; // phones: draw less
 
 let busy = false;
 let typeTimer = null;
@@ -908,11 +909,11 @@ function showMuseum() {
     panels += `<div class="wp" data-k="${k}" style="--a:${(k * step).toFixed(3)}deg"><i class="rail"></i>${spot}${inner}</div>`;
   }
   let dust = '';
-  for (let i = 0; i < 44; i++) {
+  for (let i = 0; i < (LITE ? 18 : 44); i++) {
     dust += `<b style="left:${rand(4, 96).toFixed(1)}%;top:${rand(10, 72).toFixed(1)}%;--s:${rand(1.5, 3.2).toFixed(1)}px;--dx:${rand(-30, 30).toFixed(0)}px;--dur:${rand(14, 30).toFixed(0)}s;--dl:${rand(-30, 0).toFixed(0)}s"></b>`;
   }
 
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < (LITE ? 6 : 9); i++) {
     dust += `<b class="ff" style="left:${rand(6, 94).toFixed(1)}%;top:${rand(25, 80).toFixed(1)}%;--s:${rand(3, 5).toFixed(1)}px;--dx:${rand(-70, 70).toFixed(0)}px;--dur:${rand(7, 13).toFixed(0)}s;--dl:${rand(-12, 0).toFixed(0)}s"></b>`;
   }
 
