@@ -19,7 +19,7 @@
   const canvas = document.createElement('canvas')
   canvas.setAttribute('aria-hidden', 'true')
   canvas.style.cssText =
-    'position:fixed;inset:0;width:100%;height:100dvh;pointer-events:none;z-index:85'
+    'position:fixed;inset:0;width:100%;height:100dvh;pointer-events:none;z-index:100'
   document.body.appendChild(canvas)
   const ctx = canvas.getContext('2d')
 
@@ -51,26 +51,47 @@
   function burst(x, y, count) {
     glows.push({ x, y, age: 0, life: 1.1, size: rand(70, 105), c: themeGlow() })
     for (let i = 0; i < count && petals.length < CFG.maxPetals; i++) {
-      petals.push({
-        x: x + rand(-14, 14),
-        y: y + rand(-14, 14),
-        vx: rand(-45, 45),
-        vy: rand(-70, -10), // konting talon pataas, tapos hihilahin ng gravity
-        size: rand(7, 13),
-        rot: rand(0, Math.PI * 2),
-        vrot: rand(-3, 3),
-        sway: rand(0, Math.PI * 2),
-        swaySpeed: rand(2, 4),
-        age: 0,
-        life: rand(2.6, 4.2),
-        color: CFG.petalColors[Math.floor(Math.random() * CFG.petalColors.length)],
-      })
+      petals.push(makePetal(x + rand(-14, 14), y + rand(-14, 14), rand(-45, 45), rand(-70, -10), rand(2.6, 4.2)))
+      // vy negatibo: konting talon pataas, tapos hihilahin ng gravity
     }
+    wake()
+  }
+
+  function makePetal(x, y, vx, vy, life) {
+    return {
+      x, y, vx, vy,
+      size: rand(7, 13),
+      rot: rand(0, Math.PI * 2),
+      vrot: rand(-3, 3),
+      sway: rand(0, Math.PI * 2),
+      swaySpeed: rand(2, 4),
+      age: 0,
+      life,
+      color: CFG.petalColors[Math.floor(Math.random() * CFG.petalColors.length)],
+    }
+  }
+
+  function wake() {
     if (!raf) {
       last = performance.now()
       raf = requestAnimationFrame(frame)
     }
   }
+
+  // ulan ng petals sa buong screen (para sa cinematic reveal). ms = gaano katagal, perSec = dami kada segundo
+  let showerTimer = 0
+  function shower(ms = 6000, perSec = 38) {
+    clearInterval(showerTimer)
+    const t0 = performance.now()
+    showerTimer = setInterval(() => {
+      if (performance.now() - t0 > ms) { clearInterval(showerTimer); return }
+      const n = Math.max(1, Math.round(perSec / 12))
+      for (let i = 0; i < n && petals.length < CFG.maxPetals + 120; i++)
+        petals.push(makePetal(rand(-20, W + 20), rand(-40, -10), rand(-25, 25), rand(60, 120), rand(9, 13)))
+      wake()
+    }, 80)
+  }
+  window.TouchBloom = { shower, burst }
 
   function drawPetal(p, alpha) {
     const s = p.size

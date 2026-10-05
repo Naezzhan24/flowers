@@ -1103,7 +1103,7 @@ function geoUpdate(pos) {
     // a very vague fix (e.g. cell tower, 500 m off) must not count; wait for a better one
     if (!geo.there && accuracy <= Math.max(150, PLACE.radius) && geo.dist <= PLACE.radius) {
       geo.there = true;
-      if (route === 'home' && allSeen() && !progress.revealed && surpriseReady()) render(); // plays the unlock moment
+      maybeReveal(); // plays the cinematic if she already opened all five
     }
   }
   if (whereBox) whereBox.textContent = `lat ${lat.toFixed(6)}\nlng ${lng.toFixed(6)}\naccuracy ±${Math.round(accuracy)} m` +
@@ -1129,6 +1129,60 @@ function miniBouquet() {
   return `<path d="M0 118L-58 74Q0 58 58 74Z" fill="#f6dbe6"/><path d="M0 118L-58 74Q-20 90 12 94Z" fill="#fff7ec" opacity=".9"/>${stems}${blooms}<ellipse cx="0" cy="98" rx="9" ry="7" fill="#e3b04b"/>`;
 }
 
+/* ---------------- CINEMATIC REVEAL: when she is at the place (and has opened all five), the screen goes dark,
+   a few lines appear, she touches the glowing button, light floods in, petals rain over the whole screen, and the
+   secret bouquet assembles itself. Runs once; the 'revealed' flag is saved on her phone. ---------------- */
+const reveal = { running: false };
+function maybeReveal() {
+  const F = BOUQUETS.find((b) => b.lock);
+  if (!F || reveal.running || progress.revealed) return;
+  if (!(allSeen() && surpriseReady())) return;
+  if (!lb.el.hidden || fin.open) return; // she is looking at a picture/finale: wait (checked again every few seconds)
+  reveal.running = true;
+  playReveal(F);
+}
+setInterval(maybeReveal, 3000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) maybeReveal(); });
+
+function playReveal(F) {
+  const R = CONFIG.reveal || {};
+  const lines = R.lines && R.lines.length ? R.lines : [`${CONFIG.to},`, 'nandito ka na.', 'May isa pang bulaklak na naghihintay sa iyo ✿'];
+  const glow = F.theme.glow;
+  const el = document.createElement('div');
+  el.className = 'reveal';
+  el.style.setProperty('--rg', glow);
+  el.innerHTML = `<div class="rv-halo"></div><div class="rv-lines">${lines.map((l, i) => `<p style="--i:${i}">${l}</p>`).join('')}</div>
+    <button class="rv-btn" style="--d:${lines.length * 1.5 + 1}s"><span class="rv-bud"><svg viewBox="-44 -44 88 88">${Flowers.bloom('peony', 34, Flowers.PAL.peony, 77, .6)}</svg></span><span>${R.button || 'Hawakan mo ✿'}</span></button>
+    <div class="rv-flash"></div>`;
+  document.body.appendChild(el);
+  // the ring-and-bell sequence needs a touch (browsers keep sound locked until then), so she taps the glowing button
+  requestAnimationFrame(() => el.classList.add('on'));
+  const btn = el.querySelector('.rv-btn');
+  let started = false;
+  const go = () => {
+    if (started) return;
+    started = true;
+    sfxInit();
+    try { navigator.vibrate && navigator.vibrate([160, 80, 160, 80, 360]); } catch (e) { /* not supported */ }
+    el.classList.add('go');
+    const w = innerWidth, h = innerHeight, cols = [glow, '#fff', ...F.theme.rain];
+    const at = (ms, fn) => setTimeout(fn, ms);
+    stopMusic();
+    chime(0); ripple(w / 2, h / 2, glow);
+    at(450, () => { chime(3); ripple(w / 2, h / 2, '#fff'); });
+    at(900, () => { chime(5, true); burst(w / 2, h / 2, cols); if (window.TouchBloom) TouchBloom.shower(7000, 40); });
+    at(1500, () => { ripple(w / 2, h / 2, glow); burst(w * .3, h * .45, cols); burst(w * .7, h * .45, cols); });
+    at(1900, () => el.classList.add('flash'));
+    at(3300, () => {
+      progress.revealed = true; store.set('revealed', true);
+      route = 'f'; render(); // the secret bouquet assembles itself behind the fading light
+      el.classList.add('out');
+    });
+    at(5600, () => { el.remove(); reveal.running = false; });
+  };
+  btn.addEventListener('click', go);
+}
+
 /* ---------------- HOME ---------------- */
 function showHome() {
   setTheme(HOME_THEME);
@@ -1136,9 +1190,8 @@ function showHome() {
   stopMusic();
 
   // the secret bouquet looks locked until its unlock moment has played (below)
-  const unlockNow = BOUQUETS.find((b) => b.lock && allSeen() && surpriseReady() && !progress.revealed);
-  // the secret bouquet is completely hidden (no card, no dot, no lock) until its moment arrives
-  const shown = BOUQUETS.filter((b) => !b.lock || progress.revealed || b === unlockNow);
+  // the secret bouquet is completely hidden (no card, no dot, no lock) until the cinematic reveal (maybeReveal) has played
+  const shown = BOUQUETS.filter((b) => !b.lock || progress.revealed);
   const cards = shown.map((b) => {
     const i = BOUQUETS.indexOf(b);
     const pv = b.preview, locked = !!b.lock && !isOpen(b);
@@ -1220,7 +1273,6 @@ function showHome() {
     if (dragged) { dragged = false; return; }
     if (!c.classList.contains('active')) { scrollToCard(i); return; }
     if (c.classList.contains('locked')) {
-      if (unlockNow) return; // its unlock is about to play
       c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
       say(`Open all ${regular().length} bouquets first ✿ (${seenCount()}/${regular().length})`);
       return;
@@ -1233,38 +1285,7 @@ function showHome() {
 
   requestAnimationFrame(() => { cardEls[0].scrollIntoView({ inline: 'center', block: 'nearest' }); updateActive(); });
 
-  // she already opened all five but the surprise time hasn't come yet: if she is still on this page when it does,
-  // the bouquet appears by itself (re-render plays the unlock moment). Checked every few seconds so a sleeping phone still catches up.
-  if (allSeen() && !progress.revealed && !surpriseReady()) {
-    const poll = setInterval(() => {
-      if (surpriseReady() && route === 'home') render();
-    }, 3000);
-    mus.timers.push(poll);
-  }
-
-  // she just opened the last of the five: the lock opens and the secret bouquet appears
-  if (unlockNow) {
-    progress.revealed = true; store.set('revealed', true);
-    const idx = BOUQUETS.indexOf(unlockNow), card = cardEls[idx];
-    const cols = [unlockNow.theme.glow, '#fff', ...unlockNow.theme.rain];
-    say('Something new is waiting ✿');
-    mus.timers.push(setTimeout(() => scrollToCard(idx), 1500));
-    mus.timers.push(setTimeout(() => {
-      card.classList.add('unlocking');
-      chime(0); mus.timers.push(setTimeout(() => chime(3), 260));
-      const r = card.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height * .36;
-      ripple(x, y, unlockNow.theme.glow); burst(x, y, cols);
-      mus.timers.push(setTimeout(() => { burst(x, y, cols); ripple(x, y, '#fff'); chime(5, true); }, 900));
-    }, 2600));
-    mus.timers.push(setTimeout(() => {
-      card.classList.remove('locked', 'unlocking');
-      card.setAttribute('aria-label', `Open bouquet ${unlockNow.letter}: ${unlockNow.name}`);
-      card.querySelector('.hm-name').textContent = unlockNow.name;
-      card.querySelector('.hm-sub2').textContent = unlockNow.sub;
-      card.querySelector('.hm-open').textContent = 'Open';
-      say('Unlocked ✿ Tap it to open');
-    }, 4300));
-  }
+  setTimeout(maybeReveal, 600); // if the moment has already come, the cinematic starts now
 }
 
 /* ---------------- BOUQUET ---------------- */

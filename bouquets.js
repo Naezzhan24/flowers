@@ -19,6 +19,12 @@ const CONFIG = {
   },
   // Optional na oras: 'YYYY-MM-DDTHH:MM:00' (oras ng phone niya), hal. '2026-10-11T19:00:00'. Iwanang '' kung location lang.
   unlockAt: '',
+  // CINEMATIC REVEAL: ito ang lalabas sa screen niya pagdating sa tambayan (bago bumukas ang Thumbelina). I-edit ang mga linya!
+  // Bawat item = isang linya na isa-isang lilitaw. Pagkatapos, may button na kailangan niyang hawakan (kailangan ito para lumabas ang tunog).
+  reveal: {
+    lines: ['Anne,', 'nandito ka na.', 'May isa pang bulaklak na naghihintay sa iyo ✿'],
+    button: 'Hawakan mo ✿',
+  },
 }
 
 const GREEN = { color: '#3f7d4e', dark: '#2e6440' }

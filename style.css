@@ -595,3 +595,32 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .hm-card.unlocking::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 36%, #fff3cf, transparent 60%); animation: flash 1.6s ease-out forwards; }
 @keyframes flash { 0% { opacity: 0; } 25% { opacity: .95; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .thumb, .wing, .rays, .hm-card .lockico { animation: none; } }
+
+/* ============ CINEMATIC REVEAL (secret bouquet): dark screen, lines, glowing button, flood of light ============ */
+.reveal { position: fixed; inset: 0; z-index: 95; display: grid; place-items: center; overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 50%, #1d1030, #05020a 72%); opacity: 0; transition: opacity 1.4s ease; }
+.reveal.on { opacity: 1; }
+.rv-halo { position: absolute; left: 50%; top: 50%; width: 80vmin; height: 80vmin; transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(circle, var(--rg, #ffd9a0), transparent 65%); opacity: .22; filter: blur(30px); animation: rvbreathe 3.6s ease-in-out infinite; }
+@keyframes rvbreathe { 50% { opacity: .42; transform: translate(-50%, -50%) scale(1.12); } }
+.rv-lines { position: absolute; left: 0; right: 0; top: max(14%, env(safe-area-inset-top)); padding: 0 24px; text-align: center; }
+.rv-lines p { font-family: var(--script); font-size: clamp(2rem, 9vw, 3.4rem); line-height: 1.25; color: #fff5f8; margin: 0 0 .35em; opacity: 0; transform: translateY(10px);
+  text-shadow: 0 0 22px var(--rg, #ffd9a0); animation: rvline 1.6s calc(.9s + var(--i) * 1.5s) ease forwards; }
+@keyframes rvline { to { opacity: 1; transform: none; } }
+.rv-btn { position: absolute; left: 50%; bottom: max(12%, calc(env(safe-area-inset-bottom) + 24px)); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px;
+  color: #f6dbe6; font-weight: 600; letter-spacing: .12em; opacity: 0; animation: rvbtn 1.4s var(--d, 5s) ease forwards; }
+@keyframes rvbtn { to { opacity: 1; } }
+.rv-bud svg { width: 96px; height: 96px; display: block; filter: drop-shadow(0 0 18px var(--rg, #ffd9a0)); animation: rvpulse 1.8s ease-in-out infinite; }
+@keyframes rvpulse { 50% { transform: scale(1.14); } }
+.reveal.go .rv-lines p, .reveal.go .rv-btn { animation: none; opacity: 0; transition: opacity .7s; pointer-events: none; }
+.rv-flash { position: absolute; inset: -20%; opacity: 0; transform: scale(.2); pointer-events: none;
+  background: radial-gradient(circle, #fffaf0 0%, #ffe3b0 35%, rgba(255,217,160,0) 70%); transition: opacity 1.1s ease, transform 1.6s cubic-bezier(.2,.7,.3,1); }
+.reveal.flash .rv-flash { opacity: 1; transform: scale(2.4); }
+.reveal.out { opacity: 0; transition: opacity 2.2s ease; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .rv-halo, .rv-bud svg { animation: none; } }
+
+/* narrow phones: a long tag ("The Secret Bouquet") gets its own centered row instead of being squeezed between the buttons */
+@media (max-width: 480px) {
+  .topbar { flex-wrap: wrap; row-gap: 2px; }
+  .topbar .tag { order: 3; width: 100%; text-align: center; font-size: 1.5rem; line-height: 1.1; white-space: nowrap; }
+}
