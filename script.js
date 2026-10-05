@@ -103,6 +103,15 @@ function burst(x, y, colors) {
   }
 }
 
+// a ring of light that spreads from a point (used when a flower lands in the secret bouquet)
+function ripple(x, y, color) {
+  const d = document.createElement('i');
+  d.className = 'ripple';
+  d.style.cssText = `left:${x}px;top:${y}px;--rc:${color}`;
+  document.body.appendChild(d);
+  d.animate([{ transform: 'scale(.4)', opacity: .9 }, { transform: 'scale(10)', opacity: 0 }], { duration: 1400, easing: 'cubic-bezier(.2,.7,.3,1)' }).finished.then(() => d.remove());
+}
+
 /* ---------------- flower pictures (lightbox) ---------------- */
 const PHOTO_EXT = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'JPG', 'PNG'];
 const lb = {
@@ -226,7 +235,7 @@ const finT = (fn, ms) => { const t = setTimeout(fn, ms); fin.timers.push(t); ret
 function tapFlower(b, fl) {
   const f = b.flowers[+fl.dataset.f];
   if (f.finale) startFinale(b, fl);
-  else openPhotos(f.photos, fl);
+  else if (f.photos && f.photos.length) openPhotos(f.photos, fl);
 }
 
 const finPhotos = (ids) => {
@@ -569,11 +578,33 @@ function flipSound() {
   src.start();
 }
 
-const mus = { timers: [], torchOn: false };
+// a soft bell, made in code: one note per flower that lands, a little chord at the end
+const CHIME = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1318.5];
+function chime(k = 0, chord = false) {
+  if (music.muted) return;
+  sfxInit();
+  const c = sfx.ctx;
+  if (!c) return;
+  (chord ? [0, 2, 4, 6] : [k % CHIME.length]).forEach((n, j) => {
+    [1, 2.01].forEach((m, q) => {
+      const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + j * .09;
+      o.type = 'sine'; o.frequency.value = CHIME[n] * m;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(.11 / (q + 1), t + .02);
+      g.gain.exponentialRampToValueAtTime(.0001, t + 1.5);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + 1.6);
+    });
+  });
+}
+
+const mus = { timers: [], torchOn: false, off: [], view: { yaw: 0, pitch: 0, vyaw: 0, anim: null } };
 function museumStop() {
   mus.timers.forEach((t) => { clearTimeout(t); clearInterval(t); });
   mus.timers = [];
   mus.torchOn = false;
+  mus.off.forEach((f) => f());
+  mus.off = [];
 }
 
 function showIntro() {
@@ -631,17 +662,16 @@ function startTorch(torch) {
 function startPetals() {
   const colors = ['#f9adc6', '#ff6a80', '#cfaef0', '#ffe98a', '#fee3ec'];
   const drop = () => {
-    const room = document.getElementById('room'), v = document.getElementById('vaseBtn');
-    if (!room || !v) return;
-    const rr = room.getBoundingClientRect(), vr = v.getBoundingClientRect();
-    const x = vr.left - rr.left + vr.width * (.3 + Math.random() * .4);
-    const y0 = vr.top - rr.top + vr.height * (.2 + Math.random() * .1);
-    const y1 = vr.top - rr.top + vr.height * .815;
+    const v = document.getElementById('vaseBtn'); // petals live inside the vase, so they follow it as the room turns
+    if (!v) return;
+    const x = v.offsetWidth * (.3 + Math.random() * .4);
+    const y0 = v.offsetHeight * (.2 + Math.random() * .1);
+    const y1 = v.offsetHeight * .815;
     const d = y1 - y0, s = 12 + Math.random() * 8, sw = 22 + Math.random() * 22;
     const p = document.createElement('i');
     p.className = 'petal-fall';
     p.style.cssText = `left:${x}px;top:${y0}px;width:${s}px;height:${s * 1.3}px;background:${colors[Math.floor(Math.random() * colors.length)]}`;
-    room.appendChild(p);
+    v.appendChild(p);
     const a = p.animate([
       { transform: 'translate(0,0) rotate(0deg)', opacity: 0 },
       { opacity: .95, offset: .08 },
@@ -789,67 +819,314 @@ function museumMusic() {
   ['pointerdown', 'keydown', 'touchstart'].forEach((t) => window.addEventListener(t, kick, { passive: true }));
 }
 
+/* ---- 360° gallery ----
+   The room is a ring of wall panels around you (CSS 3D). You stand in the middle; dragging turns your head.
+   Frames are placed automatically, 3 to a wall (a wide picture gets a wall of its own). Wall 0 holds the vase,
+   wall 1 the bench; the rest hold the pictures. */
+const FOV = { wide: 64, narrow: 36 };       // how much of the room you see across the screen (degrees)
+const FRAME_RATIO = { p: 1.28, l: .79 };    // frame height / frame width (portrait / landscape)
+// each slot: [centre x as a share of the wall width, top as a share of the wall height, frame width as a share of the wall width]
+const MUSEUM_TPL = {
+  wide: {
+    trio: [[[.2, .22, .27], [.5, .14, .27], [.8, .26, .27]], [[.2, .14, .27], [.5, .26, .27], [.8, .16, .27]]],
+    pair: [[[.28, .16, .34], [.72, .28, .34]], [[.28, .28, .34], [.72, .15, .34]]],
+    one: [[[.5, .16, .46]]],
+    land: [[[.5, .22, .64]]],
+  },
+  tall: {
+    trio: [[[.27, .12, .38], [.73, .2, .38], [.5, .44, .38]], [[.73, .12, .38], [.27, .2, .38], [.5, .44, .38]]],
+    pair: [[[.38, .13, .46], [.62, .455, .46]], [[.62, .13, .46], [.38, .455, .46]]],
+    one: [[[.5, .2, .74]]],
+    land: [[[.5, .25, .85]]],
+  },
+};
+const thumbOf = (src) => src.replace(/^photos\//, 'photos/thumbs/') + '.jpg';
+
+function museumWalls(frames, land) {
+  const port = frames.filter((f) => !land.includes(f.src)), wide = frames.filter((f) => land.includes(f.src));
+  const walls = [];
+  for (let i = 0; i < port.length;) {
+    const left = port.length - i, n = left === 4 ? 2 : Math.min(3, left);
+    walls.push({ kind: n === 3 ? 'trio' : n === 2 ? 'pair' : 'one', items: port.slice(i, i + n) });
+    i += n;
+  }
+  wide.forEach((f, k) => walls.splice(Math.floor(walls.length * (k + 1) / (wide.length + 1)) + k, 0, { kind: 'land', items: [f] }));
+  return walls;
+}
+
 function showMuseum() {
   setTheme(MUSEUM_THEME);
   rain([], 0);
   museumMusic();
 
-  const fx = (f) => (f.x / 100 + f.w / 2).toFixed(4); // frame centre as a fraction of the room width
-  const frames = MUSEUM.frames.map((f, i) => `<button class="mframe" data-i="${i}" style="left:${f.x}%;top:${f.y}%;--fw:${f.w};--ratio:${f.ratio};--tilt:${f.tilt || 0}deg;--i:${i}" aria-label="Open picture ${i + 1}">
-      <span class="mwood"><span class="mfil"><span class="mmat"><img alt="" data-src="${f.src}"></span></span></span>
+  const land = MUSEUM.landscape || [];
+  const frames = MUSEUM.frames.map((f, i) => ({ ...f, i, land: land.includes(f.src) }));
+  const walls = museumWalls(frames, land);
+  const N = Math.max(8, walls.length + 2), step = 360 / N;
+  const wallOf = (k) => walls[k - 2];          // wall 0 = vase, wall 1 = bench
+  const boyAt = 2 + Math.floor(walls.length / 2);
+
+  const frameHTML = (f, gi) => `<button class="mframe" data-i="${f.i}" style="--i:${gi};--ratio:${f.land ? '4 / 3' : '3 / 4'};--tilt:${[-.8, .6, 0, .9, -.5][f.i % 5]}deg" aria-label="Open picture ${f.i + 1}">
+      <i class="fix"></i>
+      <span class="mwood"><span class="mfil"><span class="mmat"><img alt="" draggable="false" data-src="${f.src}"></span></span></span>
       ${f.plaque ? `<span class="mplaque">${f.plaque}</span>` : ''}
-    </button>`).join('');
-  const lights = MUSEUM.frames.map((f) =>
-    `<i class="fix" style="left:calc(var(--rw) * ${fx(f)})"></i><i class="mcone" style="left:calc(var(--rw) * ${fx(f)});width:calc(var(--rw) * ${(f.w * 2.6).toFixed(3)})"></i>`).join('');
+    </button>`;
+  let panels = '';
+  for (let k = 0; k < N; k++) {
+    const w = wallOf(k);
+    const inner = k === 1 && CONFIG.since ? `<div class="mdate"><span>Since</span><b>${CONFIG.since}</b></div>` : w ? w.items.map((f) => frameHTML(f, k)).join('') : '';
+    const spot = k === 0 ? '<i class="mspot"></i>' : '';
+    panels += `<div class="wp" data-k="${k}" style="--a:${(k * step).toFixed(3)}deg"><i class="rail"></i>${spot}${inner}</div>`;
+  }
   let dust = '';
   for (let i = 0; i < 44; i++) {
     dust += `<b style="left:${rand(4, 96).toFixed(1)}%;top:${rand(10, 72).toFixed(1)}%;--s:${rand(1.5, 3.2).toFixed(1)}px;--dx:${rand(-30, 30).toFixed(0)}px;--dur:${rand(14, 30).toFixed(0)}s;--dl:${rand(-30, 0).toFixed(0)}s"></b>`;
   }
 
   app.innerHTML = `<section class="mus">
-    <div class="mus-scroll" id="musScroll"><div class="room" id="room">
-      ${CONFIG.since ? `<div class="mdate"><span>Since</span><b>${CONFIG.since}</b></div>` : ''}
-      <div class="ceil"></div><div class="wall"></div><div class="floor"></div><div class="rail"></div>
-      ${lights}<i class="fix" id="vFix"></i><i class="mcone" id="vCone"></i><i class="pool" id="vPool"></i>
-      ${frames}
-      <div class="viewers" aria-hidden="true">${viewersSVG()}</div>
-      <div class="sitter" aria-hidden="true">${sitterSVG()}</div>
-      <div class="bench" aria-hidden="true"><span class="seat"></span><span class="lg l1"></span><span class="lg l2"></span></div>
-      <button class="vase-btn" id="vaseBtn" aria-label="Open the flowers"><span class="vase-hint">Tap the flowers ❀</span>${vaseSVG()}</button>
-      <div class="dust" aria-hidden="true">${dust}</div>
+    <div class="v360" id="v360"><div class="world" id="world">
+      <div class="ceil3" id="ceil3"></div><div class="floor3" id="floor3"></div>
+      ${panels}
+      <div class="bb bench" aria-hidden="true" style="--a:17deg;--r:calc(var(--R) * .8)"><span class="seat"></span><span class="lg l1"></span><span class="lg l2"></span></div>
+      <div class="bb sitter" aria-hidden="true" style="--a:17deg;--r:calc(var(--R) * .8 - 14px)">${sitterSVG()}</div>
+      <div class="bb viewers" aria-hidden="true" style="--a:${(boyAt * step + step * .3).toFixed(3)}deg;--r:calc(var(--R) * .76)">${viewersSVG()}</div>
+      <button class="bb vase-btn" id="vaseBtn" aria-label="Open the flowers" style="--a:0deg;--r:calc(var(--R) * .8)"><span class="vase-hint">Tap the flowers ❀</span>${vaseSVG()}</button>
     </div></div>
+    <div class="dust" aria-hidden="true">${dust}</div>
     <div class="torch" id="torch"></div>
-    <p class="mus-hint" id="musHint">Swipe to look around →</p>
+    <p class="mus-hint" id="musHint">Drag to look around ↔</p>
     <button class="ghost to-vase" id="toVase">Flowers ›</button>
     <button class="ghost round mus-mute" id="musMute" aria-label="Toggle music">${music.muted ? '🔇' : '🔊'}</button>
   </section>`;
 
-  const sc = document.getElementById('musScroll');
+  const v = document.getElementById('v360'), world = document.getElementById('world');
   const hint = document.getElementById('musHint');
-  sc.addEventListener('scroll', () => hint.classList.add('gone'), { once: true });
-  app.querySelectorAll('.mframe img').forEach((img) => setImg(img, img.dataset.src, () => img.closest('.mframe').remove()));
-  app.querySelectorAll('.mframe').forEach((b) => {
-    b.onclick = () => { const f = MUSEUM.frames[+b.dataset.i]; openPhotos([{ src: f.src, caption: f.caption || '' }], null); };
+  const view = mus.view;
+  let R = 800, k = .1; // wall distance (px), degrees turned per pixel dragged
+
+  // everything is sized from the screen: the walls, the frames on them, the floor and the lights
+  const layout = () => {
+    const vw = v.clientWidth, vh = v.clientHeight;
+    if (!vw || !vh) return;
+    const fov = (vw < 700 ? FOV.narrow : FOV.wide) * Math.PI / 180;
+    R = (vw / 2) / Math.tan(fov / 2);
+    k = (2 * Math.atan(vw / 2 / R) * 180 / Math.PI) / vw;
+    const W = 2 * R * Math.tan(Math.PI / N) + 2, H = vh * .8, ceil = -vh * .46, floor = vh * .34;
+    const Rc = R / Math.cos(Math.PI / N) + 4;
+    const st = v.style;
+    st.setProperty('--R', R.toFixed(1) + 'px'); st.setProperty('--W', W.toFixed(1) + 'px'); st.setProperty('--H', H.toFixed(1) + 'px');
+    st.setProperty('--ceil', ceil.toFixed(1) + 'px'); st.setProperty('--floor', floor.toFixed(1) + 'px'); st.setProperty('--Rc', Rc.toFixed(1) + 'px');
+
+    const tall = W < H * .75, tpl = MUSEUM_TPL[tall ? 'tall' : 'wide'];
+    const pools = [];
+    walls.forEach((w, gi) => {
+      const set = tpl[w.kind], t = set[gi % set.length];
+      const wall = v.querySelector(`.wp[data-k="${gi + 2}"]`);
+      w.items.forEach((f, j) => {
+        const el = wall.querySelectorAll('.mframe')[j];
+        const [cx, y, wf] = t[j], hr = f.land ? FRAME_RATIO.l : FRAME_RATIO.p;
+        const fw = Math.min(W * wf, H * .6 / hr);
+        el.style.left = (W * cx - fw / 2).toFixed(1) + 'px';
+        el.style.top = (H * y).toFixed(1) + 'px';
+        el.style.width = fw.toFixed(1) + 'px';
+        el.style.setProperty('--ty', (H * y - H * .075).toFixed(1) + 'px');
+      });
+      pools.push([(gi + 2) * step, .9, .13]);
+    });
+    pools.push([0, .84, .3]);
+
+    // floor and ceiling: a ring-shaped plane with pools of light under each wall
+    const poly = (sign) => Array.from({ length: N }, (_, i) => {
+      const th = (i + .5) * step * Math.PI / 180;
+      return `${(Rc - Rc * Math.sin(th)).toFixed(1)}px ${(Rc + sign * Rc * Math.cos(th)).toFixed(1)}px`;
+    }).join(',');
+    const fl = document.getElementById('floor3'), ce = document.getElementById('ceil3');
+    [fl, ce].forEach((e) => { e.style.width = e.style.height = (2 * Rc) + 'px'; });
+    fl.style.clipPath = `polygon(${poly(-1)})`;
+    ce.style.clipPath = `polygon(${poly(1)})`;
+    fl.style.transform = `translate3d(${-Rc}px, ${floor}px, ${-Rc}px) rotateX(90deg)`;
+    ce.style.transform = `translate3d(${-Rc}px, ${ceil}px, ${Rc}px) rotateX(-90deg)`;
+    fl.style.background = pools.map(([a, rr, al]) => {
+      const th = a * Math.PI / 180;
+      return `radial-gradient(circle at ${(Rc - R * rr * Math.sin(th)).toFixed(0)}px ${(Rc - R * rr * Math.cos(th)).toFixed(0)}px, rgba(255,226,170,${al}), transparent ${(R * .34).toFixed(0)}px)`;
+    }).concat([
+      'repeating-linear-gradient(90deg, rgba(0,0,0,.35) 0 2px, rgba(255,255,255,.03) 2px 4px, transparent 4px 120px)',
+      'radial-gradient(circle at 50% 50%, #1d120e 0, #2a1912 40%, #34221a 100%)',
+    ]).join(',');
+  };
+
+  const paint = () => { world.style.transform = `translateZ(${R}px) rotateX(${view.pitch.toFixed(2)}deg) rotateY(${view.yaw.toFixed(2)}deg)`; };
+  // face a wall: yaw = -wall angle. Takes the short way round.
+  const goTo = (yaw, ms = 1300) => {
+    const d = ((yaw - view.yaw + 540) % 360 + 360) % 360 - 180;
+    view.anim = { from: view.yaw, d, t0: performance.now(), ms };
+    view.vyaw = 0;
+  };
+  const ease = (p) => (p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2);
+
+  const startYaw = -2 * step; // open on the first wall of pictures, glancing past the bench
+  view.yaw = startYaw + step; view.pitch = 0; view.vyaw = 0; view.anim = null;
+  layout(); paint();
+  mus.timers.push(setTimeout(() => goTo(startYaw, 3800), 1900));
+  const ro = new ResizeObserver(() => { layout(); paint(); });
+  ro.observe(v);
+  mus.off.push(() => ro.disconnect());
+
+  // turning your head: drag / swipe / wheel / arrow keys, with a little momentum
+  let drag = null, last = performance.now(), raf = 0;
+  const loop = (now) => {
+    const dt = Math.min(48, now - last); last = now;
+    if (view.anim) {
+      const p = Math.min(1, (now - view.anim.t0) / view.anim.ms);
+      view.yaw = view.anim.from + view.anim.d * ease(p);
+      if (p === 1) view.anim = null;
+    } else if (!drag && Math.abs(view.vyaw) > .0015) {
+      view.yaw += view.vyaw * dt;
+      view.vyaw *= Math.pow(.94, dt / 16);
+    }
+    if (!drag && Math.abs(view.pitch) > .05 && !view.anim) view.pitch *= Math.pow(.97, dt / 16); // settle back to level
+    view.yaw = ((view.yaw % 360) + 360) % 360;
+    paint();
+    raf = requestAnimationFrame(loop);
+  };
+  raf = requestAnimationFrame(loop);
+  mus.off.push(() => cancelAnimationFrame(raf));
+
+  const stop = () => { view.anim = null; hint.classList.add('gone'); };
+  v.addEventListener('pointerdown', (e) => {
+    if (e.button) return;
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, lt: e.timeStamp, moved: false };
+    view.vyaw = 0;
   });
-  const toFlowers = (e) => transition(() => { route = 'home'; render(); }, e, HOME_THEME.glow);
-  document.getElementById('vaseBtn').onclick = toFlowers;
+  const onMove = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (!drag.moved) {
+      if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
+      drag.moved = true; mus.dragged = true; stop();
+      v.classList.add('grab');
+      try { v.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
+    }
+    const dx = e.clientX - drag.lx, dy = e.clientY - drag.ly, dt = Math.max(1, e.timeStamp - drag.lt);
+    view.yaw -= dx * k;
+    view.pitch = Math.max(-16, Math.min(16, view.pitch + dy * k * .6));
+    view.vyaw = view.vyaw * .5 + (-dx * k / dt) * .5;
+    drag.lx = e.clientX; drag.ly = e.clientY; drag.lt = e.timeStamp;
+  };
+  const onUp = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (drag.moved && e.timeStamp - drag.lt > 90) view.vyaw = 0; // held still before letting go: no fling
+    drag = null; v.classList.remove('grab');
+    setTimeout(() => { mus.dragged = false; }, 60);
+  };
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+  const onWheel = (e) => {
+    e.preventDefault(); stop();
+    view.yaw += (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * .07;
+  };
+  v.addEventListener('wheel', onWheel, { passive: false });
+  const onKey = (e) => {
+    if (route !== 'museum' || !lb.el.hidden) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      hint.classList.add('gone');
+      goTo((view.anim ? view.anim.from + view.anim.d : view.yaw) + (e.key === 'ArrowLeft' ? -step : step), 650);
+    }
+  };
+  window.addEventListener('keydown', onKey);
+  mus.off.push(() => {
+    window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp); window.removeEventListener('keydown', onKey);
+  });
+
+  app.querySelectorAll('.mframe img').forEach((img) => {
+    const f = MUSEUM.frames[+img.closest('.mframe').dataset.i];
+    // small thumbnail for the wall; if there isn't one, use the full picture
+    setImg(img, thumbOf(f.src), () => setImg(img, f.src, () => img.closest('.mframe').remove()));
+  });
+  app.querySelectorAll('.mframe').forEach((b) => {
+    b.onclick = () => {
+      if (mus.dragged) return;
+      const f = MUSEUM.frames[+b.dataset.i];
+      openPhotos([{ src: f.src, caption: f.caption || '' }], null);
+    };
+  });
+  document.getElementById('vaseBtn').onclick = (e) => {
+    if (mus.dragged) return;
+    transition(() => { route = 'home'; render(); }, e, HOME_THEME.glow);
+  };
   startTorch(document.getElementById('torch'));
   startPetals();
   document.getElementById('musMute').onclick = (e) => toggleMute(e.currentTarget);
-  document.getElementById('toVase').onclick = () => sc.scrollTo({ left: sc.scrollWidth, behavior: 'smooth' });
+  document.getElementById('toVase').onclick = (e) => transition(() => { route = 'home'; render(); }, e, HOME_THEME.glow);
+}
 
-  // aim a spotlight at the vase (its size depends on the screen)
-  requestAnimationFrame(() => {
-    const room = document.getElementById('room'), v = document.getElementById('vaseBtn');
-    if (!room || !v) return;
-    const rr = room.getBoundingClientRect(), vr = v.getBoundingClientRect();
-    const cx = vr.left - rr.left + vr.width / 2;
-    document.getElementById('vFix').style.left = cx + 'px';
-    const cone = document.getElementById('vCone');
-    cone.style.left = cx + 'px'; cone.style.width = Math.max(vr.width * 1.9, 300) + 'px';
-    const pool = document.getElementById('vPool');
-    pool.style.left = cx + 'px'; pool.style.width = vr.width * 1.7 + 'px';
-  });
+/* ---------------- secret bouquet: locked until the other five have been opened ---------------- */
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem('hf-' + k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem('hf-' + k, JSON.stringify(v)); } catch (e) { /* private mode: keep it in memory only */ } },
+};
+if (/[?&]reset\b/.test(location.search)) { store.set('seen', []); store.set('revealed', false); } // open index.html?reset to start over
+const progress = { seen: new Set(store.get('seen') || []), revealed: !!store.get('revealed') };
+const regular = () => BOUQUETS.filter((b) => !b.lock);
+const seenCount = () => regular().filter((b) => progress.seen.has(b.id)).length;
+const allSeen = () => seenCount() === regular().length;
+const markSeen = (b) => { if (!b.lock && !progress.seen.has(b.id)) { progress.seen.add(b.id); store.set('seen', [...progress.seen]); } };
+// can she open it right now? (the unlock moment happens on the bouquet list, so it only counts once that has played)
+// the secret bouquet also waits for CONFIG.unlockAt (the surprise time). index.html?preview skips the wait for testing
+const unlockTime = CONFIG.unlockAt ? new Date(CONFIG.unlockAt).getTime() : 0;
+const previewMode = /[?&]preview\b/.test(location.search);
+const timeReached = () => !unlockTime || isNaN(unlockTime) || Date.now() >= unlockTime || previewMode;
+
+/* ---- the surprise place: unlocks when her phone says she is at CONFIG.place (only works while the page is open, needs https) ---- */
+const PLACE = CONFIG.place && CONFIG.place.lat != null && CONFIG.place.lng != null ? CONFIG.place : null;
+const geo = { there: false, dist: null, acc: null, lat: null, lng: null, error: '' };
+const metersBetween = (a, b, c, d) => { // haversine
+  const R = 6371000, r = (x) => (x * Math.PI) / 180;
+  const h = Math.sin(r(c - a) / 2) ** 2 + Math.cos(r(a)) * Math.cos(r(c)) * Math.sin(r(d - b) / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+};
+const placeReached = () => !CONFIG.place || previewMode || (!!PLACE && geo.there); // place set but no coordinates yet = stay hidden
+const surpriseReady = () => timeReached() && placeReached();
+const isOpen = (b) => !b.lock || (allSeen() && surpriseReady() && progress.revealed);
+
+const whereBox = /[?&]where\b/.test(location.search) ? Object.assign(document.createElement('pre'), { id: 'whereBox' }) : null;
+if (whereBox) {
+  whereBox.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:200;margin:0;padding:10px;font:12px/1.4 monospace;color:#fff;background:rgba(0,0,0,.78);border-radius:10px;white-space:pre-wrap;pointer-events:none';
+  document.body.appendChild(whereBox);
+}
+function geoUpdate(pos) {
+  const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+  Object.assign(geo, { lat, lng, acc: accuracy, error: '' });
+  if (PLACE) {
+    geo.dist = metersBetween(lat, lng, PLACE.lat, PLACE.lng);
+    // a very vague fix (e.g. cell tower, 500 m off) must not count; wait for a better one
+    if (!geo.there && accuracy <= Math.max(150, PLACE.radius) && geo.dist <= PLACE.radius) {
+      geo.there = true;
+      if (route === 'home' && allSeen() && !progress.revealed && surpriseReady()) render(); // plays the unlock moment
+    }
+  }
+  if (whereBox) whereBox.textContent = `lat ${lat.toFixed(6)}\nlng ${lng.toFixed(6)}\naccuracy ±${Math.round(accuracy)} m` +
+    (PLACE ? `\nmula sa tambayan: ${Math.round(geo.dist)} m (radius ${PLACE.radius})\n${geo.there ? 'NASA TAMBAYAN NA ✓' : 'wala pa sa tambayan'}` : '\n(wala pang lat/lng sa CONFIG.place)');
+}
+function geoStart() {
+  if ((!PLACE && !whereBox) || !('geolocation' in navigator)) return;
+  navigator.geolocation.watchPosition(geoUpdate, (err) => {
+    geo.error = err.message;
+    if (whereBox) whereBox.textContent = 'location error: ' + err.message;
+  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+}
+geoStart();
+
+const LOCK_SVG = `<svg class="lockico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2.5" fill="rgba(232,201,143,.16)"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1.3" fill="currentColor" stroke="none"/></svg>`;
+
+// a small picture of the secret bouquet for its card
+function miniBouquet() {
+  const P = Flowers.PAL;
+  const spec = [['peony', 'peony', -40, -50, 28], ['gerbera', 'gerbera', 40, -50, 28], ['carnation', 'carnPurple', -56, 14, 22], ['rose', 'roseRed', 56, 14, 22], ['tulip', 'tulipYellow', -28, 62, 15], ['thumbelina', 'thumbPink', 0, 30, 34]];
+  const stems = spec.map((f) => `<path d="M0 104Q${f[2] / 2} ${(104 + f[3]) / 2} ${f[2]} ${f[3]}" stroke="#4c8a54" stroke-width="2.4" fill="none" stroke-linecap="round"/>`).join('');
+  const blooms = spec.map((f, i) => `<g transform="translate(${f[2]} ${f[3]})">${Flowers.bloom(f[0], f[4], P[f[1]], 90 + i * 9, .6 + i * .12)}</g>`).join('');
+  return `<path d="M0 118L-58 74Q0 58 58 74Z" fill="#f6dbe6"/><path d="M0 118L-58 74Q-20 90 12 94Z" fill="#fff7ec" opacity=".9"/>${stems}${blooms}<ellipse cx="0" cy="98" rx="9" ry="7" fill="#e3b04b"/>`;
 }
 
 /* ---------------- HOME ---------------- */
@@ -858,14 +1135,21 @@ function showHome() {
   rain(HOME_THEME.rain, 9);
   stopMusic();
 
-  const cards = BOUQUETS.map((b, i) => {
-    const pv = b.preview;
-    const flower = Flowers.bloom(pv.k, pv.s, Flowers.PAL[pv.p], b.seed + 5, .6 + i * .15);
-    return `<button class="hm-card" data-i="${i}" style="--i:${i};--c:${b.theme.glow}" aria-label="Open bouquet ${b.letter}: ${b.name}">
-      <svg viewBox="${pv.vb}"><g class="flw">${flower}</g></svg>
-      <span class="hm-name">${b.name}</span>
-      <span class="hm-sub2">${b.sub}</span>
-      <span class="hm-open">Open</span>
+  // the secret bouquet looks locked until its unlock moment has played (below)
+  const unlockNow = BOUQUETS.find((b) => b.lock && allSeen() && surpriseReady() && !progress.revealed);
+  // the secret bouquet is completely hidden (no card, no dot, no lock) until its moment arrives
+  const shown = BOUQUETS.filter((b) => !b.lock || progress.revealed || b === unlockNow);
+  const cards = shown.map((b) => {
+    const i = BOUQUETS.indexOf(b);
+    const pv = b.preview, locked = !!b.lock && !isOpen(b);
+    const flower = b.lock ? miniBouquet() : Flowers.bloom(pv.k, pv.s, Flowers.PAL[pv.p], b.seed + 5, .6 + i * .15);
+    const vb = b.lock ? '-100 -92 200 220' : pv.vb;
+    return `<button class="hm-card${locked ? ' locked' : ''}" data-i="${i}" style="--i:${i};--c:${b.theme.glow}" aria-label="${locked ? 'Locked bouquet' : `Open bouquet ${b.letter}: ${b.name}`}">
+      <svg viewBox="${vb}"><g class="flw">${flower}</g></svg>
+      ${b.lock ? LOCK_SVG : ''}
+      <span class="hm-name">${locked ? 'Locked' : b.name}</span>
+      <span class="hm-sub2">${locked ? `Open all ${regular().length} · ${seenCount()}/${regular().length}` : b.sub}</span>
+      <span class="hm-open">${locked ? '🔒' : 'Open'}</span>
     </button>`;
   }).join('');
 
@@ -881,8 +1165,8 @@ function showHome() {
       <div class="hm-carousel" id="carousel">${cards}</div>
       <button class="ghost round arrow r" aria-label="Next">›</button>
     </div>
-    <nav class="hm-dots">${BOUQUETS.map((b, i) => `<button class="hm-dot" data-i="${i}" aria-label="Bouquet ${b.letter}"></button>`).join('')}</nav>
-    <p class="hm-hint">Tap a bouquet to open it</p>
+    <nav class="hm-dots">${shown.map((b, i) => `<button class="hm-dot" data-i="${i}" aria-label="Bouquet ${b.letter}"></button>`).join('')}</nav>
+    <p class="hm-hint" id="hmHint">Tap a bouquet to open it</p>
   </section>`;
 
   document.getElementById('backGal').onclick = (e) => openMuseum(e);
@@ -927,9 +1211,20 @@ function showHome() {
     if (dragged) scrollToCard(current());
   });
 
+  const hmHint = document.getElementById('hmHint');
+  const say = (t) => {
+    hmHint.textContent = t;
+    mus.timers.push(setTimeout(() => { hmHint.textContent = 'Tap a bouquet to open it'; }, 2800));
+  };
   cardEls.forEach((c, i) => c.addEventListener('click', (e) => {
     if (dragged) { dragged = false; return; }
     if (!c.classList.contains('active')) { scrollToCard(i); return; }
+    if (c.classList.contains('locked')) {
+      if (unlockNow) return; // its unlock is about to play
+      c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
+      say(`Open all ${regular().length} bouquets first ✿ (${seenCount()}/${regular().length})`);
+      return;
+    }
     openBouquet(i, e);
   }));
   dots.forEach((d, i) => d.addEventListener('click', () => scrollToCard(i)));
@@ -937,23 +1232,60 @@ function showHome() {
   app.querySelector('.arrow.r').addEventListener('click', () => scrollToCard(Math.min(cardEls.length - 1, current() + 1)));
 
   requestAnimationFrame(() => { cardEls[0].scrollIntoView({ inline: 'center', block: 'nearest' }); updateActive(); });
+
+  // she already opened all five but the surprise time hasn't come yet: if she is still on this page when it does,
+  // the bouquet appears by itself (re-render plays the unlock moment). Checked every few seconds so a sleeping phone still catches up.
+  if (allSeen() && !progress.revealed && !surpriseReady()) {
+    const poll = setInterval(() => {
+      if (surpriseReady() && route === 'home') render();
+    }, 3000);
+    mus.timers.push(poll);
+  }
+
+  // she just opened the last of the five: the lock opens and the secret bouquet appears
+  if (unlockNow) {
+    progress.revealed = true; store.set('revealed', true);
+    const idx = BOUQUETS.indexOf(unlockNow), card = cardEls[idx];
+    const cols = [unlockNow.theme.glow, '#fff', ...unlockNow.theme.rain];
+    say('Something new is waiting ✿');
+    mus.timers.push(setTimeout(() => scrollToCard(idx), 1500));
+    mus.timers.push(setTimeout(() => {
+      card.classList.add('unlocking');
+      chime(0); mus.timers.push(setTimeout(() => chime(3), 260));
+      const r = card.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height * .36;
+      ripple(x, y, unlockNow.theme.glow); burst(x, y, cols);
+      mus.timers.push(setTimeout(() => { burst(x, y, cols); ripple(x, y, '#fff'); chime(5, true); }, 900));
+    }, 2600));
+    mus.timers.push(setTimeout(() => {
+      card.classList.remove('locked', 'unlocking');
+      card.setAttribute('aria-label', `Open bouquet ${unlockNow.letter}: ${unlockNow.name}`);
+      card.querySelector('.hm-name').textContent = unlockNow.name;
+      card.querySelector('.hm-sub2').textContent = unlockNow.sub;
+      card.querySelector('.hm-open').textContent = 'Open';
+      say('Unlocked ✿ Tap it to open');
+    }, 4300));
+  }
 }
 
 /* ---------------- BOUQUET ---------------- */
 function showBouquet(i) {
   const b = BOUQUETS[i];
+  if (!isOpen(b)) { route = 'home'; showHome(); return; } // still locked
+  markSeen(b);
   setTheme(b.theme);
   rain(b.theme.rain, 24);
-  playMusic(b.id);
+  playMusic(b.music || b.id);
 
-  const { svg, duration } = Flowers.buildBouquet(b);
+  const { svg, duration, lands } = Flowers.buildBouquet(b);
   const words = (l) => l.split(' ').map((w) => `<span class="w">${[...w].map((c) => `<span class="c">${c}</span>`).join('')}</span>`).join(' ');
-  const last = i === BOUQUETS.length - 1;
+  const nx = BOUQUETS[i + 1];
+  const waiting = nx && nx.lock && allSeen() && surpriseReady() && !progress.revealed; // the secret bouquet is about to be revealed on the list
+  const last = !nx || (nx.lock && !isOpen(nx) && !waiting);
 
   app.innerHTML = `<section class="bq">
     <nav class="topbar">
       <button class="ghost" id="back">← Bouquets</button>
-      <span class="tag">Bouquet ${b.letter}</span>
+      <span class="tag">${b.tag || `Bouquet ${b.letter}`}</span>
       <div class="pn">
         <button class="ghost round" id="mute" aria-label="Toggle music">${music.muted ? '🔇' : '🔊'}</button>
         <button class="ghost round" id="prev" aria-label="Previous">‹</button>
@@ -961,7 +1293,7 @@ function showBouquet(i) {
       </div>
     </nav>
     <div class="stage">
-      <div class="bouquet-wrap" id="bwrap"><div class="halo"></div><div class="bob">${svg}</div></div>
+      <div class="bouquet-wrap" id="bwrap"><div class="halo"></div>${b.assemble ? '<div class="rays"></div>' : ''}<div class="bob">${svg}</div></div>
       <article class="msg">
         <p class="kicker">${b.name} · ${b.sub}</p>
         <p class="tap-hint">✿ Tap a flower to see a memory</p>
@@ -970,13 +1302,13 @@ function showBouquet(i) {
         <p class="sig" id="sig">${CONFIG.from}</p>
         <div class="actions">
           <button class="ghost" id="replay">↻ Replay</button>
-          <button class="ghost" id="next2">${last ? 'Back to the start ✿' : 'Next bouquet →'}</button>
+          <button class="ghost" id="next2">${waiting ? 'Something new is waiting ✿' : last ? 'Back to the start ✿' : 'Next bouquet →'}</button>
         </div>
       </article>
     </div>
   </section>`;
 
-  const go = (j, e) => (j < 0 || j >= BOUQUETS.length ? openHome(e, b.theme.glow) : openBouquet(j, e));
+  const go = (j, e) => (!BOUQUETS[j] || !isOpen(BOUQUETS[j]) ? openHome(e, b.theme.glow) : openBouquet(j, e));
   document.getElementById('back').onclick = (e) => openHome(e, b.theme.glow);
   document.getElementById('prev').onclick = (e) => go(i - 1, e);
   document.getElementById('next').onclick = (e) => go(i + 1, e);
@@ -993,6 +1325,24 @@ function showBouquet(i) {
     const fl = e.target.closest && e.target.closest('.fl');
     if (fl && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); tapFlower(b, fl); }
   };
+
+  // the secret bouquet is put together in front of her: each flower lands in the wrap with a ring of light and a bell note
+  if (b.assemble && lands) {
+    const wrap = document.getElementById('bwrap');
+    const cols = [b.theme.glow, '#fff', ...b.theme.rain];
+    lands.forEach((t, k) => mus.timers.push(setTimeout(() => {
+      const fl = wrap.querySelectorAll('.fl')[k];
+      if (!fl) return;
+      const r = fl.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+      ripple(x, y, cols[k % cols.length]); burst(x, y, cols); chime(k);
+    }, Math.max(0, t - .1) * 1000)));
+    mus.timers.push(setTimeout(() => {
+      wrap.classList.add('done');
+      const r = wrap.getBoundingClientRect();
+      [[.3, .35], [.7, .35], [.5, .2], [.5, .55]].forEach(([fx, fy], n) => mus.timers.push(setTimeout(() => burst(r.left + r.width * fx, r.top + r.height * fy, cols), n * 220)));
+      chime(5, true);
+    }, (lands[lands.length - 1] + 1.6) * 1000));
+  }
 
   // typewriter reveal
   const chars = [...app.querySelectorAll('.c')];

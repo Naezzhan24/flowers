@@ -36,6 +36,7 @@
     tulipPink: ['#ff9dbd', '#e8709a', '#b73e70'],
     tulipCoral: ['#ff9d80', '#f0715c', '#bd4331'],
     tulipYellow: ['#ffe98a', '#f7c944', '#c1922a'],
+    thumbPink: ['#ffd9e8', '#ffb3d0', '#e5799f'],
   };
 
   /* ---------- petal rings ---------- */
@@ -111,6 +112,31 @@
       const gloss = `<path d="${shape.tulip(h * .78, w * .32)}" transform="translate(${n2(-w * .3)} ${n2(-h * .08)})" fill="#fff" opacity=".2"/><path d="M0 ${n2(-h * .1)}L0 ${n2(-h * .8)}" stroke="${pal[2]}" stroke-width="1" opacity=".35" fill="none"/>`;
       return part(-19, pal[1], h * .98, w * .9, .16) + part(19, pal[1], h * .98, w * .9, .16) + part(0, pal[0], h, w * .92, 0, gloss);
     },
+    // Thumbelina's flower: a tulip that opens wide, and a tiny girl with wings sits in the cup
+    thumbelina(s, pal) {
+      const h = s * 1.75, w = s * .9;
+      const part = (a, fill, hh, ww, d, extra = '') =>
+        `<g transform="rotate(${a})"><g class="petal" style="--pd:${d}s"><path d="${shape.tulip(hh, ww)}" fill="${fill}" stroke="rgba(60,0,20,.2)" stroke-width=".8"/>${extra}</g></g>`;
+      const gloss = `<path d="${shape.tulip(h * .7, w * .3)}" transform="translate(${n2(-w * .32)} ${n2(-h * .08)})" fill="#fff" opacity=".24"/>`;
+      const cy = -h * .6, u = s / 34;               // her centre inside the cup, and a unit to scale her by
+      const wing = (sx) => `<g class="wing" style="transform-origin:${n2(sx * 5 * u)}px ${n2(cy + 2 * u)}px"><ellipse cx="${n2(sx * 17 * u)}" cy="${n2(cy - 6 * u)}" rx="${n2(10 * u)}" ry="${n2(21 * u)}" transform="rotate(${sx * 26} ${n2(sx * 17 * u)} ${n2(cy - 6 * u)})" fill="#fff" fill-opacity=".55" stroke="#ffe9a8" stroke-opacity=".9" stroke-width=".8"/>` +
+        `<ellipse cx="${n2(sx * 14 * u)}" cy="${n2(cy + 8 * u)}" rx="${n2(6 * u)}" ry="${n2(11 * u)}" transform="rotate(${sx * 52} ${n2(sx * 14 * u)} ${n2(cy + 8 * u)})" fill="#fff" fill-opacity=".4" stroke="#ffe9a8" stroke-opacity=".7" stroke-width=".7"/></g>`;
+      const girl =
+        `<circle cx="0" cy="${n2(cy - 2 * u)}" r="${n2(34 * u)}" fill="#fff3c8" opacity=".3"/>` +
+        wing(-1) + wing(1) +
+        `<path d="M${n2(-7 * u)} ${n2(cy + 1 * u)}L${n2(7 * u)} ${n2(cy + 1 * u)}L${n2(14 * u)} ${n2(cy + 24 * u)}Q0 ${n2(cy + 29 * u)} ${n2(-14 * u)} ${n2(cy + 24 * u)}Z" fill="#fff6fb" stroke="#f3b6cf" stroke-width=".7"/>` +
+        `<path d="M${n2(-6 * u)} ${n2(cy + 2 * u)}Q${n2(-14 * u)} ${n2(cy + 10 * u)} ${n2(-11 * u)} ${n2(cy + 16 * u)}M${n2(6 * u)} ${n2(cy + 2 * u)}Q${n2(14 * u)} ${n2(cy + 8 * u)} ${n2(12 * u)} ${n2(cy + 14 * u)}" stroke="#ffd9c4" stroke-width="${n2(2.6 * u)}" stroke-linecap="round" fill="none"/>` +
+        `<path d="M${n2(-9 * u)} ${n2(cy - 8 * u)}Q${n2(-13 * u)} ${n2(cy + 12 * u)} ${n2(-7 * u)} ${n2(cy + 18 * u)}L${n2(7 * u)} ${n2(cy + 18 * u)}Q${n2(13 * u)} ${n2(cy + 12 * u)} ${n2(9 * u)} ${n2(cy - 8 * u)}Z" fill="#e2a94f" opacity=".95"/>` +
+        `<circle cx="0" cy="${n2(cy - 7 * u)}" r="${n2(8 * u)}" fill="#ffe3d2"/>` +
+        `<path d="M${n2(-8.6 * u)} ${n2(cy - 7 * u)}Q${n2(-8 * u)} ${n2(cy - 17 * u)} 0 ${n2(cy - 16 * u)}Q${n2(8 * u)} ${n2(cy - 17 * u)} ${n2(8.6 * u)} ${n2(cy - 7 * u)}Q${n2(5 * u)} ${n2(cy - 12 * u)} 0 ${n2(cy - 12 * u)}Q${n2(-5 * u)} ${n2(cy - 12 * u)} ${n2(-8.6 * u)} ${n2(cy - 7 * u)}Z" fill="#e2a94f"/>` +
+        `<circle cx="${n2(-3 * u)}" cy="${n2(cy - 6 * u)}" r="${n2(.9 * u)}" fill="#5a3326"/><circle cx="${n2(3 * u)}" cy="${n2(cy - 6 * u)}" r="${n2(.9 * u)}" fill="#5a3326"/>` +
+        `<path d="M${n2(-2.4 * u)} ${n2(cy - 3 * u)}Q0 ${n2(cy - 1.2 * u)} ${n2(2.4 * u)} ${n2(cy - 3 * u)}" stroke="#c0605a" stroke-width="${n2(.9 * u)}" fill="none" stroke-linecap="round"/>` +
+        `<circle cx="${n2(-5 * u)}" cy="${n2(cy - 3.6 * u)}" r="${n2(1.8 * u)}" fill="#ff9db7" opacity=".5"/><circle cx="${n2(5 * u)}" cy="${n2(cy - 3.6 * u)}" r="${n2(1.8 * u)}" fill="#ff9db7" opacity=".5"/>` +
+        `<path d="M0 ${n2(cy - 17 * u)}l${n2(2 * u)} ${n2(-3 * u)}l${n2(2 * u)} ${n2(3 * u)}l${n2(-2 * u)} ${n2(1.4 * u)}l${n2(-2 * u)} ${n2(-1.4 * u)}Z" fill="#fff3a8" stroke="#e2a94f" stroke-width=".5"/>`;
+      return part(0, pal[2], h * .98, w * .92, 0) +
+        `<g class="core"><g class="thumb">${girl}</g></g>` +
+        part(-50, pal[1], h * .92, w * .78, .16, gloss) + part(50, pal[1], h * .92, w * .78, .16);
+    },
   };
 
   function bloom(kind, s, pal, seed, base) {
@@ -134,7 +160,8 @@
     const H = { x: 200, y: 440 };
     const rng = rnd(b.seed);
     const th = b.theme;
-    let leaves = '', filler = '', stems = '', flowers = '', sparkles = '';
+    let leaves = '', filler = '', stems = '', flowers = '', sparkles = '', drops = '';
+    const asm = !!b.assemble, lands = [];
 
     // greenery
     const L = b.leaves;
@@ -172,26 +199,35 @@
     let last = 0;
     b.flowers.forEach((f, i) => {
       const kind = f.k || b.kind;
+      const tul = kind === 'tulip' || kind === 'thumbelina';
       const dx = f.x - H.x, dy = f.y - H.y;
       const cx = H.x + dx * .75, cy = H.y + dy * .6;
       const sd = n2(.5 + i * .07);
-      stems += `<path class="stem" pathLength="1" style="--sd:${sd}s" d="M${H.x} ${H.y}Q${n2(cx)} ${n2(cy)} ${f.x} ${f.y}" stroke="${b.stem}" stroke-width="${kind === 'gerbera' ? 5 : 4}" fill="none" stroke-linecap="round"/>`;
+      const stemD = `M${H.x} ${H.y}Q${n2(cx)} ${n2(cy)} ${f.x} ${f.y}`, stemW = kind === 'gerbera' ? 5 : 4;
+      // assembling: each stem is placed in the wrap one after the other, so it is drawn whole and slides in with its flower
+      const stem = asm
+        ? `<path d="${stemD}" stroke="${b.stem}" stroke-width="${stemW}" fill="none" stroke-linecap="round"/>`
+        : `<path class="stem" pathLength="1" style="--sd:${sd}s" d="${stemD}" stroke="${b.stem}" stroke-width="${stemW}" fill="none" stroke-linecap="round"/>`;
       const tang = (Math.atan2(f.x - cx, -(f.y - cy)) * 180) / Math.PI;
       const rot = n2(kind === 'tulip' ? tang : tang * .25);
-      const base = 1.3 + i * step;
+      const dd = n2(1.2 + i * 1.3);                    // when it starts to drop in
+      const base = asm ? n2(dd + .95) : 1.3 + i * step; // when it lands and blooms
       last = base;
-      const hit = n2(f.s * (kind === 'tulip' ? 1.1 : .95));
-      const hy = kind === 'tulip' ? n2(-f.s * .6) : 0;
-      flowers += `<g class="fl" data-f="${i}" role="button" tabindex="0" aria-label="Open pictures of flower ${i + 1}" transform="translate(${f.x} ${f.y})"><circle cx="0" cy="${hy}" r="${hit}" fill="transparent"/><g transform="rotate(${rot})">${bloom(kind, f.s, PAL[f.p], b.seed + i * 7 + 3, base)}</g></g>`;
+      if (asm) lands.push(base);
+      const hit = n2(f.s * (tul ? 1.1 : .95));
+      const hy = tul ? n2(-f.s * .6) : 0;
+      const fl = `<g class="fl" data-f="${i}" role="button" tabindex="0" aria-label="Open pictures of flower ${i + 1}" transform="translate(${f.x} ${f.y})"><circle cx="0" cy="${hy}" r="${hit}" fill="transparent"/><g transform="rotate(${rot})">${bloom(kind, f.s, PAL[f.p], b.seed + i * 7 + 3, base)}</g></g>`;
+      if (asm) drops += `<g class="drop" style="--dd:${dd}s;--ox:${n2(dx * .5)}px;--r0:${dx === 0 ? 0 : dx < 0 ? -26 : 26}deg">${stem}${fl}</g>`;
+      else { stems += stem; flowers += fl; }
     });
 
     // sparkles
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < (asm ? 34 : 18); i++) {
       const x = 20 + rng() * 360, y = 20 + rng() * 400, sz = 3 + rng() * 6;
       sparkles += `<g transform="translate(${n2(x)} ${n2(y)}) scale(${n2(sz)})"><path class="tw" style="--td:${n2(2 + rng() * 2.5)}s;--tl:${n2(2 + rng() * 4)}s" d="M0-1Q.12-.12 1 0Q.12.12 0 1Q-.12.12-1 0Q-.12-.12 0-1Z" fill="${th.glow}"/></g>`;
     }
 
-    const bowDelay = n2(last + 1.2);
+    const bowDelay = n2(last + (asm ? 1.6 : 1.2));
     const rib = th.ribbon, ribD = th.ribbonDark;
     const paper = `
       <g class="paper" style="--pd:.1s">
@@ -217,12 +253,12 @@
         <ellipse cx="198" cy="471" rx="7" ry="5" fill="${rib}"/>
       </g>`;
 
-    const svg = `<svg class="bq-svg" viewBox="0 0 400 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${b.name} bouquet">
+    const svg = `<svg class="bq-svg${asm ? ' asm' : ''}" viewBox="0 0 400 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${b.name} bouquet">
       <defs><linearGradient id="shade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient></defs>
-      ${paper}${leaves}${filler}${stems}${flowers}${front}${bow}
+      ${paper}${leaves}${filler}${stems}${flowers}${drops}${front}${bow}
       <g class="spark">${sparkles}</g>
     </svg>`;
-    return { svg, duration: last + 2.4 };
+    return { svg, duration: last + 2.4 + (asm ? 1.6 : 0), lands, bow: bowDelay };
   }
 
   global.Flowers = { PAL, bloom, buildBouquet };

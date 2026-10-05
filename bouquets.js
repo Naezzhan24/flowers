@@ -6,6 +6,19 @@ const CONFIG = {
   from: '— Jiroom ❤',
   // IBIGAY MO ANG PETSA: lalabas sa plaque sa pader ng museum at sa huling page ng libro. Iwanang '' kung wala pa.
   since: '',
+  // SURPRISE: ang secret bouquet (Thumbelina) ay TAGO hanggang (1) nabuksan na niya ang limang bouquet AT
+  // (2) nasa tambayan na siya (place) AT (3) dumating ang oras (unlockAt, kung may nilagay).
+  // Para i-test: buksan ang index.html?preview (lalaktaw sa lugar at oras).
+  place: {
+    name: 'CDC, Clark',
+    // IMPORTANT: ilagay ang eksaktong pin ng tambayan. Google Maps: long-press sa lugar > lalabas ang "15.xxxxx, 120.xxxxx".
+    // O buksan ang  index.html?where  habang nandoon ka mismo para makita ang lat/lng. Habang null, HINDI mag-a-unlock (ligtas).
+    lat: null,
+    lng: null,
+    radius: 100, // metro. 75-150 ang maganda sa labas; mas malaki kung sa loob ng building (mahina ang GPS)
+  },
+  // Optional na oras: 'YYYY-MM-DDTHH:MM:00' (oras ng phone niya), hal. '2026-10-11T19:00:00'. Iwanang '' kung location lang.
+  unlockAt: '',
 }
 
 const GREEN = { color: '#3f7d4e', dark: '#2e6440' }
@@ -217,6 +230,46 @@ const BOUQUETS = [
       'I love you so much! 💐',
     ],
   },
+  {
+    // SECRET BOUQUET: naka-lock hanggang mabuksan na niya ang lahat ng bouquet sa taas (a hanggang e).
+    // assemble = may animation na isa-isang inilalagay ang mga bulaklak sa bouquet. I-edit mo ang message sa baba!
+    id: 'f',
+    letter: 'F',
+    tag: 'The Secret Bouquet',
+    name: 'Thumbelina',
+    sub: 'The Last Flower',
+    lock: true,
+    assemble: true,
+    music: 'e',
+    kind: 'peony',
+    seed: 67,
+    theme: {
+      bg1: '#1a0f26',
+      bg2: '#6a2b57',
+      glow: '#ffd9a0',
+      rain: ['#fee3ec', '#dd2c48', '#ffe98a', '#cfaef0', '#ff4152', '#ffffff'],
+      paper: ['#fff7ec', '#f6dbe6', '#b1709a'],
+      ribbon: '#e3b04b',
+      ribbonDark: '#a8771d',
+    },
+    stem: '#4c8a54',
+    leaves: { n: 11, min: 170, max: 262, w: 0.14, ...GREEN },
+    filler: { n: 16, color: '#ffffff' },
+    preview: { k: 'peony', p: 'peony', s: 72, vb: '-90 -90 180 180' },
+    // ang pagkakasunod-sunod dito ang pagkakasunod ng paglalagay sa bouquet (huli ang Thumbelina flower)
+    flowers: [
+      { k: 'carnation', p: 'carnPurple', x: 86, y: 262, s: 38 },
+      { k: 'rose', p: 'roseRed', x: 314, y: 262, s: 40 },
+      { k: 'tulip', p: 'tulipYellow', x: 152, y: 318, s: 28 },
+      { k: 'peony', p: 'peony', x: 112, y: 168, s: 46 },
+      { k: 'gerbera', p: 'gerbera', x: 290, y: 168, s: 46 },
+      { k: 'thumbelina', p: 'thumbPink', x: 200, y: 232, s: 64, photos: [] },
+    ],
+    // ang Thumbelina flower ay walang picture; message lang ang lalabas
+    message: [
+      'The flowers will be delivered for you. 💐',
+    ],
+  },
 ]
 
 /* ============================================================
@@ -239,6 +292,19 @@ BOUQUETS.forEach((b) =>
   }),
 )
 
+// ang secret bouquet (f): bawat bulaklak ay may pictures galing sa orihinal na bouquet niya
+// (carnation = a, gerbera = b, rose = c, tulip = d, peony = isang picture mula sa bawat isa; Thumbelina = wala)
+;(() => {
+  const F = BOUQUETS.find((b) => b.id === 'f')
+  if (!F) return
+  const pics = (id) => BOUQUETS.find((b) => b.id === id).flowers.flatMap((f) => f.photos || [])
+  const from = { carnation: 'a', gerbera: 'b', rose: 'c', tulip: 'd' }
+  F.flowers.forEach((f) => {
+    if (f.k === 'thumbelina') return
+    f.photos = from[f.k] ? pics(from[f.k]) : ['a', 'b', 'c', 'd'].map((id) => pics(id)[0]).filter(Boolean)
+  })
+})()
+
 /* ============================================================
    MUSEUM (unang page): mga naka-frame na pictures sa pader
    x, y = pwesto sa pader (% ng lapad/taas ng kwarto), w = lapad ng frame (% ng lapad ng kwarto)
@@ -248,10 +314,31 @@ BOUQUETS.forEach((b) =>
 const MUSEUM = {
   eyebrow: 'for ' + CONFIG.to,
   title: 'Hello, Flower',
-  sub: 'A little gallery of us. Take your time, then find the flowers on the table.',
+  sub: 'A little gallery of us. Turn all the way around, then find the flowers on the table.',
+  // 360° na kwarto: iikot ang tingin sa lahat ng pader. Ang mga frame ay kusang nilalagay sa pader (3 kada pader).
+  // plaque = (optional) maliit na nakasulat sa ilalim ng frame, caption = lalabas sa popup.
+  // landscape = mga picture na pahiga (4:3), para mailagay sa malapad na frame.
+  landscape: ['photos/a4', 'photos/d3'],
   frames: [
-    { src: 'photos/b2', x: 22, y: 16, w: 0.12, ratio: '3 / 4', tilt: -1, plaque: 'May 14', caption: 'Two: “I still love you.”' },
-    { src: 'photos/b3', x: 40, y: 27, w: 0.105, ratio: '3 / 4', tilt: 1, plaque: 'May 8', caption: 'Three: “I’ll love you tomorrow, and every tomorrow after that.” ❤' },
-    { src: 'photos/b1', x: 57, y: 15, w: 0.115, ratio: '3 / 4', tilt: 0, plaque: 'July 5', caption: 'One: “I love you.”' },
+    { src: 'photos/b2', plaque: 'May 14', caption: 'Two: “I still love you.”' },
+    { src: 'photos/b3', plaque: 'May 8', caption: 'Three: “I’ll love you tomorrow, and every tomorrow after that.” ❤' },
+    { src: 'photos/b1', plaque: 'July 5', caption: 'One: “I love you.”' },
   ],
 }
+
+// lahat ng pictures sa bouquets (a, c, d) ay idinadagdag din sa pader, salitan para halo-halo.
+// Kung may gusto kang idagdag/alisin, i-edit lang ang MUSEUM.frames sa taas o ang pictures ng bulaklak.
+;(() => {
+  const seen = new Set(MUSEUM.frames.map((f) => f.src))
+  const lists = ['a', 'c', 'd'].map((id) => {
+    const b = BOUQUETS.find((x) => x.id === id)
+    return b ? b.flowers.flatMap((f) => f.photos || []) : []
+  })
+  for (let i = 0; lists.some((l) => i < l.length); i++)
+    lists.forEach((l) => {
+      if (l[i] && !seen.has(l[i].src)) {
+        seen.add(l[i].src)
+        MUSEUM.frames.push({ src: l[i].src, caption: l[i].caption || '' })
+      }
+    })
+})()

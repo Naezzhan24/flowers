@@ -8,6 +8,7 @@
 html, body { height: 100%; }
 body {
   font-family: var(--ui); color: var(--ink); overflow: hidden;
+  -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; overscroll-behavior: none;
   background: radial-gradient(120% 90% at 50% 0%, var(--bg2), var(--bg1) 70%) fixed;
 }
 body::before, body::after {
@@ -335,63 +336,58 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .lact .ghost { color: #3a2230; background: rgba(58,34,48,.08); border-color: rgba(58,34,48,.18); padding: 8px 14px; font-size: .85rem; }
 .lact .lt-close { background: rgba(240,122,163,.2); border-color: rgba(184,69,111,.45); font-weight: 600; }
 
-/* ============ MUSEUM (first page): dim, calm gallery ============ */
-.mus { position: relative; height: 100%; background: #0d070e; animation: musin 2.2s ease both; }
+/* ============ MUSEUM (first page): a dim 360° gallery you can turn around in ============ */
+.mus { position: relative; height: 100%; background: #0d070e; overflow: hidden; animation: musin 2.2s ease both; }
 @keyframes musin { from { opacity: 0; } to { opacity: 1; } }
 /* vignette + a little grain so it feels like a dim room, not a flat graphic */
 .mus::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 3;
   background:
     radial-gradient(120% 90% at 50% 45%, transparent 38%, rgba(4,2,6,.62) 100%),
     linear-gradient(rgba(8,4,10,.18), rgba(8,4,10,.18)); }
-.mus-scroll { position: absolute; inset: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-.mus-scroll::-webkit-scrollbar { display: none; }
-.room { --rw: max(1400px, 100vw); position: relative; width: var(--rw); height: 100%; min-height: 560px; overflow: hidden; }
 
-/* ceiling with a light track */
-.ceil { position: absolute; left: 0; right: 0; top: 0; height: 8%; background: linear-gradient(#07040a, #150c15); box-shadow: 0 6px 18px rgba(0,0,0,.6); }
-.rail { position: absolute; left: 0; right: 0; top: 6.2%; height: 6px; background: linear-gradient(#2a2a30, #121216); box-shadow: 0 3px 6px rgba(0,0,0,.6); }
-.fix { position: absolute; top: 6.9%; width: 20px; height: 20px; transform: translateX(-50%); border-radius: 4px 4px 12px 12px; background: linear-gradient(#303036, #0f0f12); box-shadow: 0 6px 14px rgba(255,222,170,.35); }
-.fix::after { content: ''; position: absolute; left: 50%; bottom: -2px; width: 11px; height: 6px; transform: translateX(-50%); border-radius: 50%; background: #ffe6b8; box-shadow: 0 0 14px 5px rgba(255,226,170,.55); }
+/* the camera: you stand in the middle of a ring of walls (sizes come from JS as --R --W --H --ceil --floor --Rc) */
+.v360 { position: absolute; inset: 0; perspective: var(--R, 800px); perspective-origin: 50% 50%; overflow: hidden;
+  touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.v360.grab { cursor: grabbing; }
+.v360 img { pointer-events: none; -webkit-user-drag: none; }
+.world { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; }
 
-/* wall: plaster texture, soft light falloff, panelled lower part */
-.wall { position: absolute; left: 0; right: 0; top: 8%; bottom: 23%;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E"),
-    linear-gradient(#2c2229, #221a22 70%, #1c141c); }
-.wall::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 25%;
+/* ceiling and floor */
+.ceil3, .floor3 { position: absolute; left: 0; top: 0; transform-origin: 0 0; backface-visibility: hidden; }
+.ceil3 { background: radial-gradient(circle at 50% 50%, #120a12 0, #1a0f19 60%, #0b060c 100%); }
+
+/* a wall: plaster texture, panelled lower part, a light track along the ceiling */
+.wp { position: absolute; left: 0; top: 0; width: var(--W); height: var(--H); transform-origin: 0 0; backface-visibility: hidden;
+  transform: rotateY(var(--a)) translate3d(calc(var(--W) * -.5), var(--ceil), calc(var(--R) * -1));
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E"), linear-gradient(#2c2229, #221a22 70%, #1c141c);
+  box-shadow: inset 0 0 calc(var(--W) * .12) rgba(0,0,0,.4); }
+.wp::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 7%; background: linear-gradient(#07040a, #150c15); box-shadow: 0 6px 18px rgba(0,0,0,.6); }
+.wp::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 25%;
   background:
     repeating-linear-gradient(90deg, transparent 0 138px, rgba(0,0,0,.28) 138px 140px, rgba(255,255,255,.04) 140px 142px),
     linear-gradient(#1d141b, #170f16);
   border-top: 5px solid #2c2128; box-shadow: 0 -2px 0 rgba(201,160,100,.35), 0 -14px 24px rgba(0,0,0,.35); }
-.floor { position: absolute; left: 0; right: 0; bottom: 0; height: 23%;
-  background:
-    linear-gradient(to bottom, rgba(0,0,0,.55), transparent 35%),
-    linear-gradient(to bottom, transparent 55%, rgba(255,255,255,.04) 56%, transparent 80%),
-    repeating-linear-gradient(90deg, rgba(0,0,0,.35) 0 2px, rgba(255,255,255,.03) 2px 4px, transparent 4px 120px),
-    linear-gradient(#34221a, #1d120e); }
-
-/* light from the ceiling spots */
-.mcone { position: absolute; top: 7.5%; height: 68%; transform: translateX(-50%); pointer-events: none; mix-blend-mode: screen;
-  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
-  background: linear-gradient(to bottom, rgba(255,226,170,.25), rgba(255,226,170,.06) 55%, transparent); }
-.pool { position: absolute; bottom: 5%; height: 7%; transform: translateX(-50%); pointer-events: none; border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(255,226,170,.28), transparent 70%); mix-blend-mode: screen; }
+.rail { position: absolute; left: 0; right: 0; top: 5.2%; height: 6px; background: linear-gradient(#2a2a30, #121216); box-shadow: 0 3px 6px rgba(0,0,0,.6); }
+.fix, .mspot { position: absolute; left: 50%; width: 20px; height: 20px; transform: translateX(-50%); border-radius: 4px 4px 12px 12px; background: linear-gradient(#303036, #0f0f12); box-shadow: 0 6px 14px rgba(255,222,170,.35); }
+.fix { top: calc(var(--ty) * -1 - 4px); }
+.mspot { top: 6.2%; }
+.fix::after, .mspot::after { content: ''; position: absolute; left: 50%; bottom: -2px; width: 11px; height: 6px; transform: translateX(-50%); border-radius: 50%; background: #ffe6b8; box-shadow: 0 0 14px 5px rgba(255,226,170,.55); }
+/* the wall behind the vase gets a warm wash from its own spot */
+.wp[data-k="0"] { background: radial-gradient(60% 70% at 50% 62%, rgba(255,226,170,.13), transparent 70%), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E"), linear-gradient(#2c2229, #221a22 70%, #1c141c); }
 
 /* dust floating in the light */
-.dust { position: absolute; inset: 8% 0 24%; pointer-events: none; }
+.dust { position: absolute; inset: 8% 0 24%; pointer-events: none; z-index: 2; }
 .dust b { position: absolute; width: var(--s); height: var(--s); border-radius: 50%; background: #ffe9c4; opacity: 0;
   animation: mote var(--dur) linear var(--dl) infinite; }
 @keyframes mote { 0% { opacity: 0; transform: translate(0, 0); } 20% { opacity: .55; } 80% { opacity: .35; } 100% { opacity: 0; transform: translate(var(--dx), -90px); } }
 
-.msign { position: absolute; left: 3.5%; top: 16%; max-width: 15%; min-width: 150px; }
-.msign p { font-size: .7rem; letter-spacing: .34em; text-transform: uppercase; color: #c9a064; opacity: .8; }
-.msign h1 { font-family: var(--script); font-weight: 400; font-size: clamp(2.4rem, 4.6vw, 3.5rem); line-height: 1.05; margin: 6px 0; color: #ead7b3; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
-.msign .msub { letter-spacing: .05em; text-transform: none; font-size: .82rem; line-height: 1.6; color: #cdbfc4; opacity: .75; }
-
-/* frames: dark wood moulding, gold inner edge, matted picture behind glass */
-.mframe { position: absolute; width: calc(var(--rw) * var(--fw)); padding: 0; transform: rotate(var(--tilt)); transform-origin: 50% 0; opacity: 0;
-  animation: framein 1.4s calc(.8s + var(--i) * .25s) cubic-bezier(.2,.8,.3,1) forwards; cursor: pointer; z-index: 1; }
+/* frames: dark wood moulding, gold inner edge, matted picture behind glass. Position + size are set by JS. */
+.mframe { position: absolute; padding: 0; transform: rotate(var(--tilt, 0deg)); transform-origin: 50% 0; opacity: 0;
+  animation: framein 1.4s calc(.8s + var(--i) * .1s) cubic-bezier(.2,.8,.3,1) forwards; cursor: pointer; z-index: 1; }
 @keyframes framein { from { opacity: 0; } to { opacity: 1; } }
+/* the light cone from the fixture above the frame */
+.mframe::before { content: ''; position: absolute; left: 50%; bottom: 30%; width: 230%; height: calc(var(--ty) + 70%); transform: translateX(-50%); z-index: -1; pointer-events: none;
+  clip-path: polygon(47% 0, 53% 0, 100% 100%, 0 100%); background: linear-gradient(rgba(255,226,170,.2), rgba(255,226,170,.04) 70%, transparent); }
 .mframe:hover .mwood, .mframe:focus-visible .mwood { filter: brightness(1.12); }
 .mwood { position: relative; display: block; padding: 5.5%; border-radius: 2px; transition: filter .4s;
   background: linear-gradient(135deg, #5b3b22, #2e1b0e 50%, #4d311b);
@@ -406,41 +402,42 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .mplaque { display: block; margin: 12px auto 0; width: fit-content; max-width: 100%; padding: 4px 11px; font-size: .68rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
   color: #2a1f10; background: linear-gradient(#bfa169, #8e7340); border-radius: 2px; box-shadow: 0 5px 8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.3); }
 
+/* things that stand on the floor between you and the wall: each is a flat cut-out placed on a ring (--a angle, --r distance) */
+.bb { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none;
+  transform: rotateY(var(--a)) translate3d(0, var(--floor), calc(var(--r) * -1)) translate(-50%, -100%); }
+
 /* a museum bench to rest on */
-.bench { position: absolute; left: calc(var(--rw) * .545); bottom: 4%; width: calc(var(--rw) * .185); height: 14%; z-index: 0; }
+.bench { width: calc(var(--H) * .34 * .8); height: calc(var(--H) * .104); }
 .bench .seat { position: absolute; left: 0; right: 0; top: 0; height: 38%; border-radius: 10px; background: linear-gradient(#4a3a3d, #2a1f22); box-shadow: 0 -2px 6px rgba(255,255,255,.07) inset, 0 10px 14px rgba(0,0,0,.5); }
 .bench .lg { position: absolute; top: 36%; width: 5%; height: 64%; background: linear-gradient(90deg, #2b1a0f, #4d321e); border-radius: 2px; }
 .bench .l1 { left: 9%; } .bench .l2 { right: 9%; }
-.bench::after { content: ''; position: absolute; left: -4%; right: -4%; bottom: -8%; height: 14%; border-radius: 50%; background: rgba(0,0,0,.45); filter: blur(5px); z-index: -1; }
 
 /* table + vase */
-.vase-btn { position: absolute; right: 3.5%; bottom: 2.5%; height: 60%; max-height: 520px; padding: 0; cursor: pointer; z-index: 1;
-  filter: drop-shadow(0 0 16px rgba(255,190,200,.22)); animation: vglow 5s ease-in-out infinite; transition: transform .6s cubic-bezier(.2,.9,.3,1); }
-.vase-btn:hover, .vase-btn:focus-visible { transform: scale(1.03); }
-.vase-svg { height: 100%; width: auto; display: block; overflow: visible; }
+.vase-btn { pointer-events: auto; height: calc(var(--H) * .5); width: calc(var(--H) * .5 * 360 / 470); padding: 0; cursor: pointer;
+  filter: drop-shadow(0 0 16px rgba(255,190,200,.22)); animation: vglow 5s ease-in-out infinite; }
+.vase-svg { height: 100%; width: 100%; display: block; overflow: visible; transition: transform .6s cubic-bezier(.2,.9,.3,1); }
+.vase-btn:hover .vase-svg, .vase-btn:focus-visible .vase-svg { transform: scale(1.03); }
 @keyframes vglow { 50% { filter: drop-shadow(0 0 28px rgba(255,190,200,.4)); } }
 .vase-hint { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); z-index: 2; white-space: nowrap; font-size: .8rem; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 999px;
   color: #f1dcb4; background: rgba(18,10,16,.72); border: 1px solid rgba(232,201,143,.45); backdrop-filter: blur(6px); box-shadow: 0 6px 16px rgba(0,0,0,.5); animation: nudge2 3.4s ease-in-out infinite; }
 
-.mus-hint { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 4; font-size: .74rem; letter-spacing: .2em; text-transform: uppercase; color: #d9c7a6; opacity: .65; transition: opacity .8s; pointer-events: none; text-shadow: 0 2px 8px rgba(0,0,0,.8); }
+.mus-hint { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 4; font-size: .74rem; letter-spacing: .2em; text-transform: uppercase; white-space: nowrap; color: #d9c7a6; opacity: .65; transition: opacity .8s; pointer-events: none; text-shadow: 0 2px 8px rgba(0,0,0,.8); }
 .mus-hint.gone { opacity: 0; }
 .to-vase { position: absolute; right: 14px; bottom: 14px; z-index: 4; font-weight: 600; color: #f1dcb4; background: rgba(18,10,16,.6); border-color: rgba(232,201,143,.4); }
 .back-gal { position: absolute; top: 14px; left: 14px; z-index: 4; }
 .home { position: relative; }
 @media (prefers-reduced-motion: reduce) { .dust b, .vase-btn, .vase-hint { animation: none; } }
 
-@media (min-width: 900px) { .room { --rw: 100vw; } }
-
-/* the two of them, quietly looking at the frames */
-.viewers { position: absolute; left: calc(var(--rw) * .48); bottom: -8%; height: 58%; z-index: 2; pointer-events: none; opacity: 0; animation: musin 3s 1.6s ease forwards; }
-.viewers-svg { height: 100%; width: auto; display: block; overflow: visible; }
+/* the boy, quietly looking at the frames */
+.viewers { height: calc(var(--H) * .46); width: calc(var(--H) * .46 * 124 / 520); opacity: 0; animation: musin 3s 1.6s ease forwards; }
+.viewers-svg { height: 100%; width: 100%; display: block; overflow: visible; }
 .fig { transform-origin: 50% 70%; animation: figsway 9s ease-in-out infinite alternate; }
 @keyframes figsway { from { transform: rotate(-.35deg); } to { transform: rotate(.35deg); } }
 @media (prefers-reduced-motion: reduce) { .fig { animation: none; } }
 
 /* the girl sits on the bench beside the vase, turned toward it */
-.sitter { position: absolute; left: calc(var(--rw) * .555); bottom: 2.6%; height: 46%; z-index: 2; pointer-events: none; opacity: 0; animation: musin 3s 2.2s ease forwards; }
-.sitter-svg { height: 100%; width: auto; display: block; overflow: visible; }
+.sitter { height: calc(var(--H) * .34); width: calc(var(--H) * .34 * .75); opacity: 0; animation: musin 3s 2.2s ease forwards; }
+.sitter-svg { height: 100%; width: 100%; display: block; overflow: visible; }
 .sit2 { transform-origin: 50% 100%; animation: sitbreath 6s ease-in-out infinite alternate; }
 @keyframes sitbreath { from { transform: translateY(0); } to { transform: translateY(-1.5px); } }
 /* greeting the flowers: a slow nod, her hand drifts toward the vase and back, a few hearts float up */
@@ -486,7 +483,7 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
   background: radial-gradient(circle at var(--tx, 50%) var(--ty, 45%), transparent 0, transparent 13vmax, rgba(3,1,5,.5) 40vmax); }
 
 /* date plaque on the wall */
-.mdate { position: absolute; left: 4.5%; top: 34%; padding: 9px 16px; text-align: center; border-radius: 2px; color: #2a1f10;
+.mdate { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); padding: 9px 16px; text-align: center; border-radius: 2px; color: #2a1f10;
   background: linear-gradient(#c3a56d, #8f7440); box-shadow: 0 6px 10px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.3); }
 .mdate span { display: block; font-size: .62rem; letter-spacing: .3em; text-transform: uppercase; opacity: .75; }
 .mdate b { display: block; font-weight: 700; font-size: 1rem; letter-spacing: .06em; margin-top: 2px; }
@@ -548,3 +545,53 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 
 /* bigger book: keep the stack a little above the capybaras on the floor */
 .book-wrap { padding-bottom: 56px; }
+
+/* ============ SECRET BOUQUET ============ */
+/* the bouquet is put together in front of her: each stem + flower drops into the wrap one after another */
+.drop { opacity: 0; transform-origin: 200px 440px; animation: dropin 1.3s cubic-bezier(.25,.9,.3,1.12) forwards; animation-delay: var(--dd); }
+@keyframes dropin {
+  0% { opacity: 0; transform: translate(var(--ox), -440px) rotate(var(--r0)); }
+  16% { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+/* a flower arrives as a tight bud, then opens once it has landed */
+.asm .petal { transform: scale(.3); opacity: 1; animation: budopen 1.5s cubic-bezier(.2,1.15,.3,1) forwards; animation-delay: calc(var(--base) + var(--pd)); }
+@keyframes budopen { to { transform: scale(1); } }
+.asm .spin { animation-name: spinin2; }
+@keyframes spinin2 { from { transform: rotate(-40deg) scale(.8); } to { transform: none; } }
+/* Thumbelina and her wings */
+.thumb { transform-box: fill-box; transform-origin: 50% 100%; animation: thumbbob 3.6s ease-in-out infinite; }
+@keyframes thumbbob { 50% { transform: translateY(-2.5px) rotate(1.2deg); } }
+.wing { transform-box: view-box; animation: flutter .55s ease-in-out infinite alternate; }
+@keyframes flutter { from { transform: scaleX(1); } to { transform: scaleX(.8); } }
+/* slowly turning rays of light behind the finished bouquet */
+.rays { position: absolute; inset: -22%; border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity 3s ease;
+  background: repeating-conic-gradient(rgba(255,226,170,.2) 0 5deg, transparent 5deg 15deg);
+  -webkit-mask-image: radial-gradient(circle, #000 0, transparent 66%); mask-image: radial-gradient(circle, #000 0, transparent 66%);
+  animation: spinrays 50s linear infinite; }
+.bouquet-wrap.done .rays { opacity: 1; }
+.bouquet-wrap.done .halo { opacity: .6; }
+@keyframes spinrays { to { transform: rotate(360deg); } }
+.ripple { position: fixed; z-index: 80; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 2px solid var(--rc, #fff); box-shadow: 0 0 18px var(--rc, #fff); pointer-events: none; }
+
+/* its card on the bouquet list: a dark shape with a lock until she has opened the other five */
+.hm-card.locked { border-style: dashed; }
+.hm-card.locked svg:not(.lockico) { filter: brightness(0) opacity(.3); }
+.hm-card .lockico { position: absolute; left: 50%; top: 36%; width: 52px; height: 52px; z-index: 2; transform: translate(-50%, -50%); color: #e8c98f; filter: drop-shadow(0 0 12px rgba(232,201,143,.55)); animation: lockfloat 3.4s ease-in-out infinite; }
+.hm-card:not(.locked) .lockico { display: none; }
+@keyframes lockfloat { 50% { transform: translate(-50%, -54%); } }
+.hm-card.shake { animation: shake .5s; }
+@keyframes shake { 20%, 60% { translate: -8px 0; } 40%, 80% { translate: 8px 0; } }
+.hm-card.unlocking svg:not(.lockico) { animation: unsil 2s ease forwards; }
+@keyframes unsil { from { filter: brightness(0) opacity(.3); } to { filter: none; } }
+.hm-card.unlocking .lockico { animation: lockpop 1.2s ease forwards; }
+@keyframes lockpop {
+  0% { transform: translate(-50%, -50%) rotate(0); }
+  18% { transform: translate(-50%, -50%) rotate(-14deg); }
+  36% { transform: translate(-50%, -50%) rotate(12deg); }
+  55% { transform: translate(-50%, -50%) scale(1.25); opacity: 1; }
+  100% { transform: translate(-50%, -70%) scale(2.4); opacity: 0; }
+}
+.hm-card.unlocking::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 36%, #fff3cf, transparent 60%); animation: flash 1.6s ease-out forwards; }
+@keyframes flash { 0% { opacity: 0; } 25% { opacity: .95; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .thumb, .wing, .rays, .hm-card .lockico { animation: none; } }
