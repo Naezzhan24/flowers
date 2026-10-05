@@ -16,6 +16,9 @@ const CONFIG = {
   easter: ['Is that us? ✿', 'Still holding hands ❤', 'I’d walk through any museum with you.'],
   // "Reply to Jerome" na button sa huling bouquet. sms: ilagay ang number mo (hal. '+639171234567') para diretso sa text mo.
   // Kung '' ang sms, magbubukas ang share sheet ng phone niya (Messenger, SMS, etc.).
+  // PICTURE KASAMA KA: pagkatapos ng "Now look up", itatanong kung gusto niyang magpa-picture. Bubukas ang camera, 3-2-1, at ang litrato
+  // ay nase-save sa phone (naka-polaroid) at nagiging background ng huling page. q = tanong, caption = nakasulat sa ilalim ng polaroid.
+  photo: { q: 'Do you want to take a photo with Jerome?', yes: 'Yes', no: 'Maybe later', caption: 'Anne & Jerome ✿' },
   reply: { text: 'I loved it, thank you Jerome ❤', sms: '' },
   // SURPRISE: ang secret bouquet (Thumbelina) ay TAGO hanggang (1) nabuksan na niya ang limang bouquet AT
   // (2) nasa tambayan na siya (place) AT (3) dumating ang oras (unlockAt, kung may nilagay).

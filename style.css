@@ -678,3 +678,31 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
   animation: lookbreath 3.4s ease-in-out infinite; }
 @keyframes lookbreath { 50% { transform: scale(1.04); opacity: .88; } }
 @media (prefers-reduced-motion: reduce) { .lookup p, .dust b.ff { animation: none; } }
+
+/* ---- the last page can wear the photo as its background ---- */
+.bq.has-photo { position: relative; isolation: isolate; }
+.bq.has-photo::before { content: ''; position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(20,8,26,.58), rgba(20,8,26,.82)), var(--photo) center / cover no-repeat; filter: blur(1.5px); transform: scale(1.03); animation: musin 2s ease both; }
+
+/* ---- camera ---- */
+.cam { position: fixed; inset: 0; z-index: 97; background: #000; display: grid; place-items: center; overflow: hidden; animation: musin .5s ease both; transition: opacity .6s; }
+.cam.out { opacity: 0; pointer-events: none; }
+.cam video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cam video.mirror { transform: scaleX(-1); }
+.cam-frame { position: absolute; inset: 14px; border-radius: 26px; border: 2px solid rgba(255,214,230,.55); box-shadow: 0 0 0 100vmax rgba(10,4,16,.18) inset, 0 0 40px rgba(255,170,205,.3) inset; pointer-events: none; }
+.cam-count { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; font-family: var(--script); font-size: 9rem; color: #fff; text-shadow: 0 0 30px rgba(255,170,205,.9); pointer-events: none; }
+.cam-count.pop { animation: campop .9s ease both; }
+@keyframes campop { from { transform: scale(1.6); opacity: 0; } 25% { opacity: 1; } to { transform: scale(.9); opacity: .15; } }
+.cam-bar { position: absolute; left: 0; right: 0; bottom: max(24px, env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: space-around; padding: 0 24px; }
+.cam-x, .cam-flip { width: 52px; height: 52px; border-radius: 50%; font-size: 1.4rem; color: #fff; background: rgba(20,8,26,.55); border: 1px solid rgba(255,255,255,.3); }
+.cam-shot { width: 78px; height: 78px; border-radius: 50%; border: 5px solid #fff; background: radial-gradient(circle, #ffd1e0 0 55%, #ff9ec4 100%); box-shadow: 0 0 24px rgba(255,170,205,.6); }
+.cam-shot:active { transform: scale(.92); }
+.cam.flash::after { content: ''; position: absolute; inset: 0; background: #fff; animation: camflash .35s ease both; }
+@keyframes camflash { from { opacity: 1; } to { opacity: 0; } }
+.cam-review { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 18px; background: radial-gradient(120% 90% at 50% 50%, #1d1030, #05020a 72%); }
+.cam-review img { max-width: 100%; max-height: 72dvh; border-radius: 6px; box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 50px rgba(255,170,205,.25); transform: rotate(-1.2deg); }
+.cam-saved { margin: 0; font-family: var(--script); font-size: 1.7rem; color: #fff1f6; text-align: center; }
+.cam-acts { display: flex; gap: 12px; }
+.cam-acts button { min-width: 120px; padding: 12px 22px; border-radius: 999px; font-weight: 600; letter-spacing: .05em; }
+.cam-msg { text-align: center; padding: 24px; color: #fff1f6; }
+.cam-msg p { font-family: var(--script); font-size: 2rem; margin: 0 0 18px; }
+.cam-msg .rv-yes { padding: 11px 30px; border-radius: 999px; font-weight: 600; }

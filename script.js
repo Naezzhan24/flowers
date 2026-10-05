@@ -1153,7 +1153,7 @@ const store = {
   get(k) { try { return JSON.parse(localStorage.getItem('hf-' + k)); } catch (e) { return null; } },
   set(k, v) { try { localStorage.setItem('hf-' + k, JSON.stringify(v)); } catch (e) { /* private mode: keep it in memory only */ } },
 };
-if (/[?&]reset\b/.test(location.search)) { store.set('seen', []); store.set('revealed', false); } // open index.html?reset to start over
+if (/[?&]reset\b/.test(location.search)) { store.set('seen', []); store.set('revealed', false); store.set('photoAsked', false); setTimeout(() => idb.set('photo', null), 0); } // open index.html?reset to start over
 const progress = { seen: new Set(store.get('seen') || []), revealed: !!store.get('revealed') };
 const regular = () => BOUQUETS.filter((b) => !b.lock);
 const seenCount = () => regular().filter((b) => progress.seen.has(b.id)).length;
@@ -1296,6 +1296,135 @@ function playReveal(F) {
   ask(0);
 }
 
+/* ---------------- a photo with Jerome: camera -> polaroid -> saved on the phone, and it becomes the last page's background ---------------- */
+const idb = {
+  open: () => new Promise((res, rej) => { const r = indexedDB.open('hf', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }),
+  async get(k) { try { const db = await this.open(); return await new Promise((res) => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); } catch (e) { return null; } },
+  async set(k, v) { try { const db = await this.open(); await new Promise((res, rej) => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); return true; } catch (e) { return false; } },
+};
+
+async function applyPhotoBg(sec) {
+  const blob = await idb.get('photo');
+  if (!blob || !sec || !sec.isConnected) return;
+  sec.style.setProperty('--photo', `url(${URL.createObjectURL(blob)})`);
+  sec.classList.add('has-photo');
+}
+
+// the question, in the same soft card style as the reveal
+function photoAsk() {
+  if (store.get('photoAsked')) return;
+  store.set('photoAsked', true);
+  const P = CONFIG.photo || {};
+  const el = document.createElement('div');
+  el.className = 'reveal photoq';
+  el.innerHTML = `<div class="rv-halo"></div><div class="rv-pop"></div>`;
+  document.body.appendChild(el);
+  const pop = el.querySelector('.rv-pop');
+  const bud = `<svg viewBox="-44 -44 88 88">${Flowers.bloom('peony', 34, Flowers.PAL.peony, 77, .05)}</svg>`;
+  const show = (html) => { pop.classList.remove('in'); setTimeout(() => { pop.innerHTML = `<div class="rv-bud">${bud}</div>${html}`; void pop.offsetWidth; pop.classList.add('in'); }, 220); };
+  const close = () => { el.classList.remove('on'); setTimeout(() => el.remove(), 1300); };
+  requestAnimationFrame(() => el.classList.add('on'));
+  show(`<h3></h3><div class="rv-acts"><button class="rv-yes"></button><button class="rv-no"></button></div>`);
+  setTimeout(() => {
+    pop.querySelector('h3').textContent = P.q || 'Do you want to take a photo with Jerome?';
+    pop.querySelector('.rv-yes').textContent = P.yes || 'Yes';
+    pop.querySelector('.rv-no').textContent = P.no || 'Maybe later';
+    pop.querySelector('.rv-yes').onclick = () => { sfxInit(); chime(2); close(); setTimeout(openCamera, 500); };
+    pop.querySelector('.rv-no').onclick = () => {
+      show('<h3>That’s okay ✿ The 📷 button will be here.</h3>');
+      setTimeout(close, 2400);
+    };
+  }, 300);
+}
+
+async function openCamera() {
+  const P = CONFIG.photo || {};
+  const el = document.createElement('div');
+  el.className = 'cam';
+  el.innerHTML = `<video playsinline muted autoplay></video><div class="cam-frame"></div><p class="cam-count"></p>
+    <div class="cam-bar"><button class="cam-x" aria-label="Close">✕</button><button class="cam-shot" aria-label="Take photo"></button><button class="cam-flip" aria-label="Switch camera">⟲</button></div>`;
+  document.body.appendChild(el);
+  const video = el.querySelector('video'), count = el.querySelector('.cam-count'), bar = el.querySelector('.cam-bar');
+  let facing = 'user', stream = null, busyShot = false;
+  const stopStream = () => { if (stream) stream.getTracks().forEach((t) => t.stop()); stream = null; };
+  const close = () => { stopStream(); el.classList.add('out'); setTimeout(() => el.remove(), 600); };
+
+  const start = async () => {
+    stopStream();
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 1280 } }, audio: false });
+      video.srcObject = stream;
+      video.classList.toggle('mirror', facing === 'user');
+      await video.play();
+    } catch (e) {
+      el.innerHTML = `<div class="cam-msg"><p>The camera isn’t available right now ✿</p><button class="rv-yes cam-ok">OK</button></div>`;
+      el.querySelector('.cam-ok').onclick = close;
+    }
+  };
+
+  // draw the picture the way she sees it, then put it in a polaroid
+  const snap = () => {
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw) return null;
+    const W = 960, H = 1060, ar = W / H;
+    let sw = vw, sh = vw / ar;
+    if (sh > vh) { sh = vh; sw = vh * ar; }
+    const raw = document.createElement('canvas'); raw.width = W; raw.height = H;
+    const c = raw.getContext('2d');
+    if (facing === 'user') { c.translate(W, 0); c.scale(-1, 1); }
+    c.drawImage(video, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, W, H);
+    const fr = document.createElement('canvas'); fr.width = 1080; fr.height = 1420;
+    const f = fr.getContext('2d');
+    f.fillStyle = '#fff6ee'; f.fillRect(0, 0, 1080, 1420);
+    f.shadowColor = 'rgba(0,0,0,.18)'; f.shadowBlur = 18; f.drawImage(raw, 60, 60); f.shadowBlur = 0;
+    f.textAlign = 'center'; f.fillStyle = '#7a2f5c';
+    f.font = "104px 'Great Vibes', 'Dancing Script', cursive";
+    f.fillText(P.caption || 'Anne & Jerome ✿', 540, 1250);
+    f.fillStyle = 'rgba(122,47,92,.75)'; f.font = "38px 'Quicksand', sans-serif";
+    f.fillText(new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }), 540, 1330);
+    return new Promise((res) => raw.toBlob((rawB) => fr.toBlob((frB) => res({ raw: rawB, framed: frB, url: fr.toDataURL('image/jpeg', .9) }), 'image/jpeg', .92), 'image/jpeg', .9));
+  };
+
+  const review = (shot) => {
+    stopStream();
+    el.innerHTML = `<div class="cam-review"><img alt="Your photo"><div class="cam-acts"><button class="rv-no cam-retake">Retake</button><button class="rv-yes cam-keep">Keep ❤</button></div></div>`;
+    el.querySelector('img').src = shot.url;
+    el.querySelector('.cam-retake').onclick = () => { el.remove(); openCamera(); };
+    el.querySelector('.cam-keep').onclick = async () => {
+      await idb.set('photo', shot.raw);
+      chime(0, true); poke2(30);
+      el.querySelector('.cam-review').innerHTML = `<img alt="Your photo" src="${shot.url}"><p class="cam-saved">Saved ✿ It’s on the last page now.</p>
+        <div class="cam-acts"><button class="rv-no cam-save">Save to phone</button><button class="rv-yes cam-done">Done</button></div>`;
+      el.querySelector('.cam-done').onclick = () => { close(); const sec = app.querySelector('.bq'); if (sec) applyPhotoBg(sec); };
+      el.querySelector('.cam-save').onclick = async () => {
+        const file = new File([shot.framed], 'hello-flower.jpg', { type: 'image/jpeg' });
+        try {
+          if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; }
+        } catch (e) { return; /* she closed the share sheet */ }
+        const a = document.createElement('a'); a.href = URL.createObjectURL(shot.framed); a.download = 'hello-flower.jpg';
+        document.body.appendChild(a); a.click(); a.remove();
+      };
+    };
+  };
+  const poke2 = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) { /* not supported */ } };
+
+  // 3, 2, 1, flash
+  el.querySelector('.cam-shot').onclick = async () => {
+    if (busyShot) return;
+    busyShot = true; sfxInit(); bar.style.visibility = 'hidden';
+    for (const n of [3, 2, 1]) { count.textContent = n; count.classList.remove('pop'); void count.offsetWidth; count.classList.add('pop'); chime(n); await new Promise((r) => setTimeout(r, 900)); }
+    count.textContent = '';
+    el.classList.add('flash'); poke2(40);
+    const shot = await snap();
+    setTimeout(() => el.classList.remove('flash'), 250);
+    if (!shot) { busyShot = false; bar.style.visibility = ''; return; }
+    review(shot);
+  };
+  el.querySelector('.cam-flip').onclick = () => { facing = facing === 'user' ? 'environment' : 'user'; start(); };
+  el.querySelector('.cam-x').onclick = close;
+  start();
+}
+
 /* ---------------- HOME ---------------- */
 function showHome() {
   setTheme(HOME_THEME);
@@ -1436,7 +1565,7 @@ function showBouquet(i) {
         <p class="sig" id="sig">${CONFIG.from}</p>
         <div class="actions">
           <button class="ghost" id="replay">↻ Replay</button>
-          ${b.lock ? '<button class="ghost" id="reply">Reply to Jerome ❤</button>' : ''}
+          ${b.lock ? '<button class="ghost" id="cam" aria-label="Take a photo">📷</button><button class="ghost" id="reply">Reply to Jerome ❤</button>' : ''}
           <button class="ghost" id="next2">${waiting ? 'Something new is waiting ✿' : last ? 'Back to the start ✿' : 'Next bouquet →'}</button>
         </div>
       </article>
@@ -1450,6 +1579,10 @@ function showBouquet(i) {
   document.getElementById('next2').onclick = (e) => go(i + 1, e);
   document.getElementById('mute').onclick = (e) => toggleMute(e.currentTarget);
   document.getElementById('replay').onclick = () => { music.id = null; render(); };
+  if (b.lock) {
+    applyPhotoBg(app.querySelector('.bq'));
+    document.getElementById('cam').onclick = () => { sfxInit(); openCamera(); };
+  }
   const replyBtn = document.getElementById('reply');
   if (replyBtn) replyBtn.onclick = async () => {
     const R = CONFIG.reply || {}, text = R.text || 'I loved it ❤';
@@ -1477,7 +1610,7 @@ function showBouquet(i) {
     sec.appendChild(o);
     requestAnimationFrame(() => o.classList.add('on'));
     try { navigator.vibrate && navigator.vibrate([90, 120, 90, 700, 90, 120, 90, 700, 90, 120, 90]); } catch (e) { /* not supported */ }
-    o.onclick = () => { o.classList.remove('on'); setTimeout(() => o.remove(), 1400); };
+    o.onclick = () => { o.classList.remove('on'); setTimeout(() => o.remove(), 1400); setTimeout(photoAsk, 1700); };
   };
   const colors = [b.theme.glow, '#fff', ...b.theme.rain];
   document.getElementById('bwrap').onclick = (e) => {
