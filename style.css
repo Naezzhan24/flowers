@@ -630,3 +630,15 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
   .topbar { flex-wrap: wrap; row-gap: 2px; }
   .topbar .tag { order: 3; width: 100%; text-align: center; font-size: 1.5rem; line-height: 1.1; white-space: nowrap; }
 }
+
+/* museum ceiling: night sky with the Aries constellation */
+.ceil3 .sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sk-s { fill: #fff6e6; opacity: .8; animation: sktw var(--d) ease-in-out infinite; animation-delay: var(--l); }
+@keyframes sktw { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
+.sk-ring { fill: none; stroke: rgba(255,214,235,.14); stroke-width: 1.5; stroke-dasharray: 3 9; }
+.sk-line { fill: none; stroke: rgba(255,226,196,.75); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px rgba(255,214,170,.7)); }
+.sk-star { fill: #fffaf0; filter: drop-shadow(0 0 8px #ffe3b0); }
+.sk-halo { fill: rgba(255,214,170,.14); }
+.sk-glyph { font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', serif; font-size: 86px; text-anchor: middle; fill: rgba(255,226,196,.9); filter: drop-shadow(0 0 10px rgba(255,200,150,.6)); }
+.sk-name { font-family: var(--script); font-size: 72px; text-anchor: middle; fill: #ffe9f0; filter: drop-shadow(0 0 10px rgba(255,170,205,.5)); }
+.sk-date { font-family: var(--ui); font-size: 34px; letter-spacing: 9px; text-anchor: middle; fill: rgba(255,226,196,.85); }

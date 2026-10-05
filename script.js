@@ -854,6 +854,34 @@ function museumWalls(frames, land) {
   return walls;
 }
 
+
+// the museum ceiling: a night sky with the Aries constellation drawn in lines, its glyph and a date
+function skyHTML() {
+  let stars = '';
+  for (let i = 0; i < 190; i++) {
+    const x = rand(10, 990), y = rand(10, 990), r = rand(.6, 2.1);
+    stars += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" class="sk-s" style="--d:${rand(2.5, 6).toFixed(1)}s;--l:${rand(-6, 0).toFixed(1)}s"/>`;
+  }
+  // Aries: 41 Ari, Hamal, Sheratan, Mesarthim (drawn a little larger so it reads from the floor)
+  const P = [[330, 400, 4], [470, 455, 7.5], [560, 500, 6], [600, 545, 5]];
+  const line = P.map((p, i) => `${i ? 'L' : 'M'}${p[0]} ${p[1]}`).join('');
+  const big = P.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r * 3.2}" class="sk-halo"/><circle cx="${x}" cy="${y}" r="${r}" class="sk-star"/>`).join('');
+  const date = CONFIG.skyDate ? `<text x="500" y="706" class="sk-date">${CONFIG.skyDate}</text>` : '';
+  return `<svg class="sky" viewBox="0 0 1000 1000" aria-hidden="true">
+    <defs><radialGradient id="skyg" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#2a1740"/><stop offset=".55" stop-color="#150c26"/><stop offset="1" stop-color="#07040f"/></radialGradient></defs>
+    <rect width="1000" height="1000" fill="url(#skyg)"/>
+    ${stars}
+    <g transform="translate(500 500) scale(.48) translate(-500 -500)"><!-- smaller, so the whole drawing fits on screen when she looks straight up -->
+      <circle cx="470" cy="470" r="250" class="sk-ring"/>
+      <path d="${line}" class="sk-line"/>
+      ${big}
+      <text x="500" y="318" class="sk-glyph">♈</text>
+      <text x="500" y="650" class="sk-name">Aries</text>
+      ${date}
+    </g>
+  </svg>`;
+}
+
 function showMuseum() {
   setTheme(MUSEUM_THEME);
   rain([], 0);
@@ -885,7 +913,7 @@ function showMuseum() {
 
   app.innerHTML = `<section class="mus">
     <div class="v360" id="v360"><div class="world" id="world">
-      <div class="ceil3" id="ceil3"></div><div class="floor3" id="floor3"></div>
+      <div class="ceil3" id="ceil3">${skyHTML()}</div><div class="floor3" id="floor3"></div>
       ${panels}
       <div class="bb bench" aria-hidden="true" style="--a:17deg;--r:calc(var(--R) * .8)"><span class="seat"></span><span class="lg l1"></span><span class="lg l2"></span></div>
       <div class="bb sitter" aria-hidden="true" style="--a:17deg;--r:calc(var(--R) * .8 - 14px)">${sitterSVG()}</div>
@@ -894,7 +922,7 @@ function showMuseum() {
     </div></div>
     <div class="dust" aria-hidden="true">${dust}</div>
     <div class="torch" id="torch"></div>
-    <p class="mus-hint" id="musHint">Drag to look around ↔</p>
+    <p class="mus-hint" id="musHint">Drag to look around ↔ and up ✦</p>
     <button class="ghost to-vase" id="toVase">Flowers ›</button>
     <button class="ghost round mus-mute" id="musMute" aria-label="Toggle music">${music.muted ? '🔇' : '🔊'}</button>
   </section>`;
@@ -984,7 +1012,7 @@ function showMuseum() {
       view.yaw += view.vyaw * dt;
       view.vyaw *= Math.pow(.94, dt / 16);
     }
-    if (!drag && Math.abs(view.pitch) > .05 && !view.anim) view.pitch *= Math.pow(.97, dt / 16); // settle back to level
+    if (!drag && view.pitch <= 16 && Math.abs(view.pitch) > .05 && !view.anim) view.pitch *= Math.pow(.97, dt / 16); // settle back to level (but stay put while she is gazing at the sky)
     view.yaw = ((view.yaw % 360) + 360) % 360;
     paint();
     raf = requestAnimationFrame(loop);
@@ -1008,7 +1036,7 @@ function showMuseum() {
     }
     const dx = e.clientX - drag.lx, dy = e.clientY - drag.ly, dt = Math.max(1, e.timeStamp - drag.lt);
     view.yaw -= dx * k;
-    view.pitch = Math.max(-16, Math.min(16, view.pitch + dy * k * .6));
+    view.pitch = Math.max(-16, Math.min(68, view.pitch + dy * k * .6)); // up to 68° so she can look straight up at the night sky
     view.vyaw = view.vyaw * .5 + (-dx * k / dt) * .5;
     drag.lx = e.clientX; drag.ly = e.clientY; drag.lt = e.timeStamp;
   };

@@ -6,6 +6,8 @@ const CONFIG = {
   from: '— Jiroom ❤',
   // IBIGAY MO ANG PETSA: lalabas sa plaque sa pader ng museum at sa huling page ng libro. Iwanang '' kung wala pa.
   since: '',
+  // Nasa kisame ng museum (night sky + Aries). Palitan kung kailangan; iwanang '' para walang petsa.
+  skyDate: '04-18-2006',
   // SURPRISE: ang secret bouquet (Thumbelina) ay TAGO hanggang (1) nabuksan na niya ang limang bouquet AT
   // (2) nasa tambayan na siya (place) AT (3) dumating ang oras (unlockAt, kung may nilagay).
   // Para i-test: buksan ang index.html?preview (lalaktaw sa lugar at oras).
